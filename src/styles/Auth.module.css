@@ -1,0 +1,227 @@
+html {
+    font-size: 16px;
+}
+
+@media (max-width: 1200px) {
+    html {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 992px) {
+    html {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    html {
+        font-size: 13.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    html {
+        font-size: 13px;
+        /* phones */
+    }
+}
+
+@media (min-width: 1600px) {
+    html {
+        font-size: 17px;
+    }
+}
+
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+    transition: background-color 5000s ease-in-out 0s;
+    -webkit-text-fill-color: white !important;
+    background-color: #1f2937 !important;
+    box-shadow: 0 0 0px 1000px #1f2937 inset !important;
+    border: 1px solid #374151 !important;
+}
+
+.container {
+    min-height: 100vh;
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    font-family: sans-serif;
+}
+
+.bgOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top right, black, transparent, rgba(127, 29, 29, 0.5));
+    opacity: 0.7;
+    z-index: 0;
+}
+
+.card {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: clamp(360px, 85vw, 480px);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    background: rgba(17, 24, 39, 0.85);
+    border-radius: 1rem;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 25px rgba(220, 38, 38, 0.2);
+    border: 1px solid #1f2937;
+}
+
+.brandLogo {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.logoImage {
+    width: clamp(160px, 40%, 240px);
+    height: auto;
+}
+
+.tabs {
+    display: flex;
+    position: relative;
+    border-bottom: 1px solid #333;
+    margin-bottom: 1.5rem;
+}
+
+.tab {
+    flex: 1;
+    text-align: center;
+    padding: clamp(0.6rem, 2vw, 0.9rem) 0;
+    font-weight: bold;
+    font-size: clamp(0.95rem, 2vw, 1.1rem);
+    color: #aaa;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.tab:hover {
+    color: #f87171;
+}
+
+.activeTab {
+    color: #EF4444;
+}
+
+.tabIndicator {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    width: 50%;
+    background-color: #DC2626;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.inputGroup {
+    position: relative;
+}
+
+.icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 1.1rem;
+}
+
+.input {
+    width: 100%;
+    padding: clamp(0.8rem, 2vw, 1rem) 2.5rem clamp(0.8rem, 2vw, 1rem) 2.5rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    color: white;
+    outline: none;
+    box-sizing: border-box;
+    font-size: clamp(0.95rem, 2vw, 1.05rem);
+    transition: border 0.2s, box-shadow 0.2s;
+}
+
+.input:focus {
+    border-color: #EF4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
+}
+
+.toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
+.submitBtn {
+    padding: clamp(0.85rem, 2vw, 1rem);
+    background: #DC2626;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    color: white;
+    font-size: clamp(1rem, 2.2vw, 1.15rem);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.submitBtn:hover {
+    background: #B91C1C;
+}
+
+.submitBtn:active {
+    transform: scale(0.95);
+}
+
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    color: #666;
+    font-weight: bold;
+    font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+}
+
+.googleBtn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: #1f2937;
+    color: white;
+    padding: clamp(0.75rem, 2vw, 1rem);
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    font-size: clamp(0.95rem, 2vw, 1.05rem);
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.googleBtn:hover {
+    background: #374151;
+}
+
+.googleIcon {
+    display: inline-block;
+    background-image: url("https://www.google.com/favicon.ico");
+    background-size: contain;
+    background-repeat: no-repeat;
+    width: clamp(18px, 2vw, 22px);
+    height: clamp(18px, 2vw, 22px);
+}
