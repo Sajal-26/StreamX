@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 
-// Change to your Flask backend URL
-// const API_BASE = "http://localhost:5000";
+// const API_BASE = "http://localhost:3000/api";
 const API_BASE = "/api";
 
 const useAuthStore = create((set) => ({
@@ -36,7 +35,6 @@ const useAuthStore = create((set) => ({
                 { withCredentials: true }
             );
             console.log("✅ Google login success:", res.data);
-            // Backend returns { user: {...} }
             set({ user: res.data.user });
         } catch (err) {
             const serverMsg = err.response?.data || err.message;
@@ -57,12 +55,12 @@ const useAuthStore = create((set) => ({
 
     // Optional: initialize from server session (requires a /me endpoint on backend)
     // init: async () => {
-    // try {
-    // const res = await axios.get(${API_BASE}/me, { withCredentials: true });
-    // set({ user: res.data.user });
-    // } catch {
-    // set({ user: null });
-    // }
+    //     try {
+    //         const res = await axios.get(${ API_BASE } / me, { withCredentials: true });
+    //         set({ user: res.data.user });
+    //     } catch {
+    //         set({ user: null });
+    //     }
     // },
 }));
 

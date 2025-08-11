@@ -4,19 +4,39 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "dev": "node api/server.js",
+    "start": "node api/server.js",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "__scripts": {
     "dev": "vercel dev",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "_scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "node api/server.js",
+    "frontend": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "serve": "node api/server.js"
+  },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
     "axios": "^1.11.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.1",
+    "express": "^5.1.0",
     "firebase": "^12.1.0",
     "framer-motion": "^12.23.12",
     "google-auth-library": "^10.2.1",
     "lucide-react": "^0.539.0",
+    "mongodb": "^6.18.0",
+    "mongoose": "^8.17.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-icons": "^5.5.0",
@@ -29,6 +49,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.0",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
