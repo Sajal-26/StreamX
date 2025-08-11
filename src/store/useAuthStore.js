@@ -2,7 +2,8 @@ import { create } from "zustand";
 import axios from "axios";
 
 // Change to your Flask backend URL
-const API_BASE = "http://localhost:5000";
+// const API_BASE = "http://localhost:5000";
+const API_BASE = "/api";
 
 const useAuthStore = create((set) => ({
     user: null,
@@ -30,7 +31,7 @@ const useAuthStore = create((set) => ({
         }
         try {
             const res = await axios.post(
-                `${API_BASE}/auth/google`,
+                `${API_BASE}/auth-google`,
                 { token: googleIdToken },
                 { withCredentials: true }
             );

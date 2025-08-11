@@ -125,20 +125,31 @@ const AuthPage = () => {
                     <span>OR</span>
                 </div>
                 {/* Google Auth */}
-                <GoogleLogin
-                    onSuccess={async (response) => {
-                        const googleIdToken = response.credential;
-                        console.log("Google OAuth success:", googleIdToken);
-                        if (googleIdToken) {
-                            loginWithGoogle(googleIdToken);
-                        } else {
-                            console.error("No Google ID token provided");
-                        }
-                    }}
-                    onError={(error) => console.error("Google OAuth error:", error)}
-                    theme="filled_black"
-                    shape="pill" 
-                />
+                <div className={styles.googleBtnContainer}>
+                    {/* This is your custom, styled button that the user sees */}
+                    <button type="button" className={styles.googleBtn}>
+                        <div className={styles.googleIcon}></div>
+                        <span>Sign in with Google</span>
+                    </button>
+
+                    {/* This is the real, invisible Google button layered on top */}
+                    <div className={styles.googleLoginWrapper}>
+                        <GoogleLogin
+                            onSuccess={async (response) => {
+                                const googleIdToken = response.credential;
+                                console.log("Google OAuth success:", googleIdToken);
+                                if (googleIdToken) {
+                                    loginWithGoogle(googleIdToken);
+                                } else {
+                                    console.error("No Google ID token provided");
+                                }
+                            }}
+                            onError={(error) => console.error("Google OAuth error:", error)}
+                            text="signin_with" // Use the text prop for accessibility
+                            width="300px" // Ensure the invisible button is wide enough
+                        />
+                    </div>
+                </div>
 
                 {/* Optional: Show Logout when logged in */}
                 {user && (
