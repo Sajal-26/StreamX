@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import cors from 'cors';
 import { connectDB } from './db.js';
 
-import { signupHandler, loginHandler, googleSignInHandler, logoutHandler } from './auth.js';
+import { loginHandler, googleSignInHandler, signupRequestHandler, verifyOtpHandler, resendOtpHandler  } from './auth.js';
 import { protect } from './authMiddleware.js'; 
 
 dotenv.config();
@@ -29,11 +29,11 @@ app.get('/api/health', (req, res) => {
 });
 
 
-app.post('/api/signup', signupHandler);
 app.post('/api/login', loginHandler);
 app.post('/api/auth-google', googleSignInHandler);
-app.post('/api/logout', logoutHandler);
-
+app.post('/api/signup-request', signupRequestHandler);
+app.post('/api/verify-otp', verifyOtpHandler);
+app.post('/api/resend-otp', resendOtpHandler);
 
 app.get('/api/profile', protect, (req, res) => {
   res.status(200).json({

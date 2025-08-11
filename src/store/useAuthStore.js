@@ -9,6 +9,7 @@ const useAuthStore = create((set, get) => ({
     token: localStorage.getItem('token') || null,
     isLoading: false,
     error: null,
+    cooldown: 0, 
 
     setAuthData: (data) => {
         const { user, token } = data;
@@ -33,18 +34,59 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    signup: async ({ username, email, password }) => {
+    signupRequest: async ({ username, email, password }) => {
         set({ isLoading: true, error: null });
         try {
-            const res = await axios.post(`${API_BASE}/signup`, { username, email, password });
-            get().setAuthData(res.data);
-            showSuccessToast('Signup successful! Welcome.');
+            await axios.post(`${API_BASE}/signup-request`, {
+                username, email, password
+            });
+            showSuccessToast("OTP sent to your email!");
+            return true;
         } catch (err) {
-            const serverMsg = err.response?.data?.message || err.message;
-            set({ error: serverMsg });
-            showErrorToast(serverMsg);
+            const msg = err.response?.data?.message || err.message;
+            set({ error: msg });
+            showErrorToast(msg);
+            return false;
         } finally {
             set({ isLoading: false });
+        }
+    },
+
+    verifyOtp: async ({ email, otp }) => {
+        set({ isLoading: true, error: null });
+        try {
+            const res = await axios.post(`${API_BASE}/verify-otp`, { email, otp });
+            get().setAuthData(res.data);
+            showSuccessToast("OTP verified. Signup complete!");
+            return true
+        } catch (err) {
+            const msg = err.response?.data?.message || err.message;
+            set({ error: msg });
+            showErrorToast(msg);
+            return false
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    resendOtp: async (email) => {
+        try {
+            const res = await axios.post(`${API_BASE}/resend-otp`, { email });
+            showSuccessToast(res.data.message);
+
+            set({ cooldown: 30 });
+            const countdown = setInterval(() => {
+                set((state) => {
+                    if (state.cooldown <= 1) {
+                        clearInterval(countdown);
+                        return { cooldown: 0 };
+                    }
+                    return { cooldown: state.cooldown - 1 };
+                });
+            }, 1000);
+        } catch (err) {
+            const msg = err.response?.data?.message || err.message;
+            showErrorToast(msg);
         }
     },
 

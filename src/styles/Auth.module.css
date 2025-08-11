@@ -23,7 +23,6 @@ html {
 @media (max-width: 480px) {
     html {
         font-size: 13px;
-        /* phones */
     }
 }
 
@@ -229,4 +228,54 @@ html {
     font-size: clamp(0.95rem, 2vw, 1.05rem);
     cursor: pointer;
     transition: background 0.3s ease;
+}
+
+.otpContainer {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+}
+
+.otpInput {
+    width: 2.8rem;
+    height: 3rem;
+    text-align: center;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    color: white;
+    font-size: 1.2rem;
+    outline: none;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+
+.otpInput:focus {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(204, 204, 204, 0.4);
+}
+
+.shake {
+    animation: shakeAnim 0.4s ease;
+}
+
+@keyframes shakeAnim {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+}
+
+.shake {
+    border-color: #DC2626;
+}
+.otpInput {
+    border-color: #ffffff;
+}
+.otpError {
+    border: 2px solid red !important;
+}
+
+.otpSuccess {
+    border: 2px solid #22c55e !important;
 }

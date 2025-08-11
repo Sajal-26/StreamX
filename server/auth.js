@@ -4,6 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import nodemailer from 'nodemailer';
 import geoip from 'geoip-lite';
 import User from './models/User.js';
+import TempUser from './models/TempUser.js';
 import { connectDB } from './db.js';
 
 const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID;
@@ -73,46 +74,133 @@ const createToken = (user) => {
     );
 };
 
-
-export async function signupHandler(req, res) {
+export async function signupRequestHandler(req, res) {
     await connectDB();
-    try {
-        const { username, email, password } = req.body;
-        if (!username || !email || !password) {
-            return res.status(400).json({ message: 'All fields are required.' });
-        }
+    const { username, email, password } = req.body;
 
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(409).json({ message: 'Email already in use.' });
-        }
-
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const newUser = new User({
-            name: username,
-            email,
-            password: hashedPassword,
-        });
-
-        await newUser.save();
-        const token = createToken(newUser);
-
-        console.log(`New user signed up and logged in: ${newUser.email}`);
-        return res.status(201).json({
-            message: 'User created successfully.',
-            token,
-            user: {
-                name: newUser.name,
-                email: newUser.email,
-            },
-        });
-    } catch (err) {
-        console.error('Signup failed:', err);
-        return res.status(500).json({ message: 'Internal server error.' });
+    if (!username || !email || !password) {
+        return res.status(400).json({ message: "All fields are required." });
     }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        return res.status(409).json({ message: "Email already in use." });
+    }
+
+    const existingTemp = await TempUser.findOne({ email });
+    if (existingTemp) {
+        await TempUser.deleteOne({ email });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const tempUser = new TempUser({
+        name: username,
+        email,
+        password: hashedPassword,
+        otp,
+    });
+
+    await tempUser.save();
+
+    await transporter.sendMail({
+        from: `"StreamX Verification" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Your OTP Code for StreamX",
+        html: `
+        <div style="background-color: #000; padding: 20px; color: #fff;">
+            <h2>Your StreamX Verification Code</h2>
+            <p>Use the OTP below to verify your account:</p>
+            <h1 style="color: #EF4444;">${otp}</h1>
+            <p>This code will expire in 10 minutes.</p>
+        </div>
+    `
+    });
+
+    return res.status(200).json({ message: "OTP sent to email." });
 }
+
+export async function verifyOtpHandler(req, res) {
+    await connectDB();
+    const { email, otp } = req.body;
+
+    const tempUser = await TempUser.findOne({ email });
+
+    if (!tempUser || tempUser.otp !== otp) {
+        return res.status(400).json({ message: "Invalid or expired OTP." });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        return res.status(409).json({ message: "User already exists." });
+    }
+
+    const newUser = new User({
+        name: tempUser.name,
+        email: tempUser.email,
+        password: tempUser.password,
+    });
+
+    await newUser.save();
+    await TempUser.deleteOne({ email });
+
+    const token = createToken(newUser);
+
+    return res.status(201).json({
+        message: "Signup and verification successful.",
+        token,
+        user: {
+            name: newUser.name,
+            email: newUser.email,
+        },
+    });
+}
+
+export async function resendOtpHandler(req, res) {
+    await connectDB();
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: "Email is required." });
+    }
+
+    const tempUser = await TempUser.findOne({ email });
+    if (!tempUser) {
+        return res.status(404).json({ message: "No pending signup found for this email." });
+    }
+
+    const now = Date.now();
+    const lastSent = tempUser.lastOtpSentAt?.getTime() || 0;
+
+    if (now - lastSent < 30 * 1000) {
+        return res.status(429).json({ 
+            message: `Please wait ${Math.ceil((30 * 1000 - (now - lastSent)) / 1000)} seconds before requesting a new OTP.` 
+        });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    tempUser.otp = otp;
+    tempUser.lastOtpSentAt = new Date();
+    await tempUser.save();
+
+    await transporter.sendMail({
+        from: `"StreamX Verification" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Your OTP Code for StreamX",
+        html: `
+        <div style="background-color: #000; padding: 20px; color: #fff;">
+            <h2>Your StreamX Verification Code</h2>
+            <p>Use the OTP below to verify your account:</p>
+            <h1 style="color: #EF4444;">${otp}</h1>
+            <p>This code will expire in 10 minutes.</p>
+        </div>
+    `
+    });
+
+    return res.status(200).json({ message: "New OTP sent to email." });
+}
+
 
 export async function loginHandler(req, res) {
     await connectDB();
