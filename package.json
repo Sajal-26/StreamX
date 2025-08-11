@@ -4,19 +4,6 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node api/server.js",
-    "start": "node api/server.js",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "__scripts": {
-    "dev": "vercel dev",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "_scripts": {
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "node api/server.js",
     "frontend": "vite",
@@ -28,6 +15,7 @@
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
     "axios": "^1.11.0",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",

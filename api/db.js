@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// const uri = process.env.VITE_MONGODB_URI;
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {

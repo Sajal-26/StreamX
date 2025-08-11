@@ -8,6 +8,8 @@ import { connectDB } from './db.js';
 
 // Import the Google auth handler
 import authGoogleHandler from './auth-google.js';
+// Import the new signup and login handlers
+import { signupHandler, loginHandler } from './auth.js';
 
 dotenv.config();
 
@@ -25,10 +27,14 @@ const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(express.json());
+// Add this middleware to parse form-encoded data
+app.use(express.urlencoded({ extended: true }));
 
 // Serve API routes
-// Use the imported handler directly in your route
+// Use the imported handlers directly in your routes
 app.post('/api/auth-google', authGoogleHandler);
+app.post('/api/signup', signupHandler); // New signup route
+app.post('/api/login', loginHandler);   // New login route
 
 app.post('/api/logout', (req, res) => {
   console.log('✅ User logged out via /api/logout');
@@ -37,10 +43,6 @@ app.post('/api/logout', (req, res) => {
 
 // Serve frontend (if built)
 app.use(express.static(path.join(__dirname, '..', 'dist')));
-
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
-// });
 
 // Start server
 const PORT = process.env.PORT || 3000;

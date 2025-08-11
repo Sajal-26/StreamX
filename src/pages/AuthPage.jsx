@@ -136,6 +136,7 @@ const AuthPage = () => {
                     <div className={styles.googleLoginWrapper}>
                         <GoogleLogin
                             onSuccess={async (response) => {
+                                console.log(response)
                                 const googleIdToken = response.credential;
                                 console.log("Google OAuth success:", googleIdToken);
                                 if (googleIdToken) {

@@ -2,7 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { connectDB } from './db.js';
 import User from './models/User.js';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 export default async function handler(req, res) {
