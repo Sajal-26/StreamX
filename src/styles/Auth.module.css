@@ -73,6 +73,7 @@ html {
     backdrop-filter: blur(6px);
     box-shadow: 0 12px 25px rgba(220, 38, 38, 0.2);
     border: 1px solid #1f2937;
+    margin: 10px;
 }
 
 .brandLogo {
@@ -210,10 +211,9 @@ html {
     opacity: 0;
     z-index: 10;
     cursor: pointer;
-    overflow: hidden; /* This hides the default button content */
+    overflow: hidden;
 }
 
-/* This is your existing googleBtn style, no changes needed here */
 .googleBtn {
     width: 100%;
     display: flex;

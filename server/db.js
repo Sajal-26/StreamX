@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// const uri = process.env.VITE_MONGODB_URI;
 const uri = process.env.MONGODB_URI;
 
 if (!uri) {
@@ -16,9 +15,9 @@ export const connectDB = async () => {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-        console.log('✅ MongoDB connected');
+        console.log('MongoDB connected');
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
+        console.error('MongoDB connection error:', error);
         process.exit(1);
     }
 };

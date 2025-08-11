@@ -24,7 +24,6 @@ dist-ssr
 
 .env
 dist
-Server
 .vercel
 
 .vercel

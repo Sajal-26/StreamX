@@ -126,13 +126,11 @@ const AuthPage = () => {
                 </div>
                 {/* Google Auth */}
                 <div className={styles.googleBtnContainer}>
-                    {/* This is your custom, styled button that the user sees */}
                     <button type="button" className={styles.googleBtn}>
                         <div className={styles.googleIcon}></div>
                         <span>Sign in with Google</span>
                     </button>
 
-                    {/* This is the real, invisible Google button layered on top */}
                     <div className={styles.googleLoginWrapper}>
                         <GoogleLogin
                             onSuccess={async (response) => {
@@ -146,8 +144,8 @@ const AuthPage = () => {
                                 }
                             }}
                             onError={(error) => console.error("Google OAuth error:", error)}
-                            text="signin_with" // Use the text prop for accessibility
-                            width="300px" // Ensure the invisible button is wide enough
+                            text="signin_with"
+                            width="300px"
                         />
                     </div>
                 </div>
