@@ -147,9 +147,15 @@ export async function verifyOtpHandler(req, res) {
 
     const token = createToken(newUser);
 
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(201).json({
         message: "Signup and verification successful.",
-        token,
         user: {
             name: newUser.name,
             email: newUser.email,
@@ -201,7 +207,6 @@ export async function resendOtpHandler(req, res) {
     return res.status(200).json({ message: "New OTP sent to email." });
 }
 
-
 export async function loginHandler(req, res) {
     await connectDB();
     try {
@@ -224,10 +229,15 @@ export async function loginHandler(req, res) {
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         sendLoginNotificationEmail(user, ip);
 
-        console.log(`User logged in: ${user.email}`);
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
         return res.status(200).json({
             message: 'Login successful.',
-            token,
             user: {
                 name: user.name,
                 email: user.email,
@@ -272,10 +282,15 @@ export async function googleSignInHandler(req, res) {
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         sendLoginNotificationEmail(updatedUser, ip);
 
-        console.log(`User logged in via Google: ${updatedUser.email}`);
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+        });
+
         return res.status(200).json({
             message: 'Google Sign-In successful.',
-            token,
             user: updatedUser
         });
     } catch (err) {

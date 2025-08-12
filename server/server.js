@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import { connectDB } from './db.js';
+import cookieParser from 'cookie-parser';
 
 import { loginHandler, googleSignInHandler, signupRequestHandler, verifyOtpHandler, resendOtpHandler  } from './auth.js';
 import { protect } from './authMiddleware.js'; 
@@ -23,6 +24,7 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({ message: 'Server is up and running successfully!' });

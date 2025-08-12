@@ -247,6 +247,7 @@ html {
     font-size: 1.2rem;
     outline: none;
     transition: border 0.2s, box-shadow 0.2s;
+    border-color: #ffffff;
 }
 
 .otpInput:focus {
@@ -256,6 +257,7 @@ html {
 
 .shake {
     animation: shakeAnim 0.4s ease;
+    border-color: #DC2626;
 }
 
 @keyframes shakeAnim {
@@ -266,12 +268,6 @@ html {
     80% { transform: translateX(6px); }
 }
 
-.shake {
-    border-color: #DC2626;
-}
-.otpInput {
-    border-color: #ffffff;
-}
 .otpError {
     border: 2px solid red !important;
 }

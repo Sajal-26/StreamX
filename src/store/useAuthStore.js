@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import axios from "axios";
 import { showSuccessToast, showErrorToast } from '../components/Toast';
+import Cookies from 'js-cookie';
 
 const API_BASE = "http://localhost:3000/api";
 
 const useAuthStore = create((set, get) => ({
     user: JSON.parse(localStorage.getItem('user-info')) || null,
-    token: localStorage.getItem('token') || null,
+    token: Cookies.get('token') || null,
     isLoading: false,
     error: null,
     cooldown: 0, 
@@ -14,7 +15,7 @@ const useAuthStore = create((set, get) => ({
     setAuthData: (data) => {
         const { user, token } = data;
         localStorage.setItem('user-info', JSON.stringify(user));
-        localStorage.setItem('token', token);
+        Cookies.set('token', token, { expires: 30 });
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         set({ user, token, error: null });
     },
@@ -118,7 +119,7 @@ const useAuthStore = create((set, get) => ({
             console.error("Logout failed on server:", err.response?.data?.message || err.message);
         } finally {
             localStorage.removeItem('user-info');
-            localStorage.removeItem('token');
+            Cookies.remove('token');
             delete axios.defaults.headers.common['Authorization'];
             set({ user: null, token: null, error: null });
         }
