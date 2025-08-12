@@ -157,6 +157,7 @@ export async function verifyOtpHandler(req, res) {
     return res.status(201).json({
         message: "Signup and verification successful.",
         user: {
+            _id: newUser._id,
             name: newUser.name,
             email: newUser.email,
         },
@@ -239,6 +240,7 @@ export async function loginHandler(req, res) {
         return res.status(200).json({
             message: 'Login successful.',
             user: {
+                _id: user._id,
                 name: user.name,
                 email: user.email,
                 picture: user.picture
@@ -291,10 +293,69 @@ export async function googleSignInHandler(req, res) {
 
         return res.status(200).json({
             message: 'Google Sign-In successful.',
-            user: updatedUser
+            user: {
+                _id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                picture: updatedUser.picture,
+            }
         });
     } catch (err) {
         console.error('Google Sign-In failed:', err);
         return res.status(401).json({ message: 'Invalid Google token' });
     }
 }
+
+export const getUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const updateUserProfile = async (req, res) => {
+    if (req.user.userId !== req.params.id) {
+        return res.status(403).json({ message: 'You can only update your own profile.' });
+    }
+
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { name, password, picture, dob, gender } = req.body;
+
+        if (name) user.name = name;
+        if (dob) user.dob = dob;
+        if (gender) user.gender = gender;
+        
+        if (typeof picture !== 'undefined') {
+            user.picture = picture;
+        }
+
+        if (password) {
+            user.password = await bcrypt.hash(password, 10);
+        }
+
+        const updatedUser = await user.save();
+
+        res.json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            picture: updatedUser.picture,
+            dob: updatedUser.dob,
+            gender: updatedUser.gender,
+        });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

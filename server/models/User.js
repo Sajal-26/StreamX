@@ -18,6 +18,11 @@ const userSchema = new mongoose.Schema(
       required: false
     },
     picture: String,
+    dob: Date,
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other', 'prefer_not_to_say']
+    }
   },
   {
     timestamps: true,

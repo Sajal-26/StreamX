@@ -274,17 +274,6 @@ const AuthPage = () => {
                         />
                     </div>
                 </div>
-
-                {user && (
-                    <button
-                        type="button"
-                        className={styles.googleBtn}
-                        style={{ marginTop: "1rem" }}
-                        onClick={logout}
-                    >
-                        Logout ({user.name})
-                    </button>
-                )}
             </div>
         </div>
     );

@@ -3,7 +3,7 @@ import axios from "axios";
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import Cookies from 'js-cookie';
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = "/api";
 
 const useAuthStore = create((set, get) => ({
     user: JSON.parse(localStorage.getItem('user-info')) || null,
@@ -15,8 +15,10 @@ const useAuthStore = create((set, get) => ({
     setAuthData: (data) => {
         const { user, token } = data;
         localStorage.setItem('user-info', JSON.stringify(user));
-        Cookies.set('token', token, { expires: 30 });
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        if (token) {
+            Cookies.set('token', token, { expires: 30 });
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        }
         set({ user, token, error: null });
     },
 
@@ -24,7 +26,7 @@ const useAuthStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const res = await axios.post(`${API_BASE}/login`, { email, password });
-            get().setAuthData(res.data);
+            get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast('Login successful! Welcome back.');
         } catch (err) {
             const serverMsg = err.response?.data?.message || err.message;
@@ -57,7 +59,7 @@ const useAuthStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const res = await axios.post(`${API_BASE}/verify-otp`, { email, otp });
-            get().setAuthData(res.data);
+            get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast("OTP verified. Signup complete!");
             return true
         } catch (err) {
@@ -101,7 +103,7 @@ const useAuthStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const res = await axios.post(`${API_BASE}/auth-google`, { token: googleIdToken });
-            get().setAuthData(res.data);
+            get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast('Successfully signed in with Google!');
         } catch (err) {
             const serverMsg = err.response?.data?.message || 'Google login failed. Please try again.';
@@ -124,9 +126,41 @@ const useAuthStore = create((set, get) => ({
             set({ user: null, token: null, error: null });
         }
     },
+
+    fetchProfile: async (profileId) => {
+        set({ isLoading: true });
+        try {
+            const res = await axios.get(`${API_BASE}/profile/${profileId}`);
+            return res.data;
+        } catch (error) {
+            showErrorToast(error.response?.data?.message || 'Failed to fetch profile');
+            return null;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    updateProfile: async (profileId, profileData) => {
+        set({ isLoading: true });
+        try {
+            const res = await axios.put(`${API_BASE}/profile/${profileId}`, profileData);
+            const currentUser = get().user;
+            if (currentUser._id === res.data._id) {
+                localStorage.setItem('user-info', JSON.stringify(res.data));
+                set({ user: res.data });
+            }
+            showSuccessToast('Profile updated successfully!');
+            return true;
+        } catch (error) {
+            showErrorToast(error.response?.data?.message || 'Failed to update profile');
+            return false;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
 }));
 
-const initialToken = localStorage.getItem('token');
+const initialToken = Cookies.get('token');
 if (initialToken) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${initialToken}`;
 }
