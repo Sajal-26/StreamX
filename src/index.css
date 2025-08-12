@@ -1,5 +1,29 @@
-html, body {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+* {
+  font-family: 'Fira Mono', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #e11d48;
+  border-radius: 10px;
+  border: 2px solid #111827;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #be123c;
 }
