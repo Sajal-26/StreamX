@@ -354,8 +354,10 @@ const DeviceManager = () => {
 
     useEffect(() => {
         const loadDevices = async () => {
+            if (!user?._id) return;
+            setLoading(true);
             try {
-                const data = await fetchDevices(user?._id);
+                const data = await fetchDevices(user._id);
                 if (data) {
                     setDevices(data);
                 }
@@ -367,16 +369,12 @@ const DeviceManager = () => {
         };
 
         loadDevices();
-    }, [fetchDevices]);
+    }, [fetchDevices, user?._id]);
 
     const handleLogoutDevice = async (deviceId) => {
-        try {
-            const success = await logoutDevice(deviceId);
-            if (success) {
-                setDevices(prev => prev.filter(d => d.id !== deviceId));
-            }
-        } catch (err) {
-            console.error("Failed to logout device", err);
+        const success = await logoutDevice(deviceId);
+        if (success) {
+            setDevices(prev => prev.filter(d => d.id !== deviceId));
         }
     };
 
@@ -410,7 +408,7 @@ const DeviceManager = () => {
                         </div>
                     ))
                 ) : (
-                    <p>No devices found.</p>
+                    <p>No active sessions found.</p>
                 )}
             </div>
         </div>

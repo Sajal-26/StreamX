@@ -1,7 +1,10 @@
+// src/App.jsx
+
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
+import ResetPasswordPage from './pages/ResetPasswordPage'; // Import the new component
 import { Toast } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import useAuthStore from './store/useAuthStore';
@@ -14,20 +17,17 @@ function App() {
       <Toast />
       <Router>
         <Routes>
-          {/* Default route redirects based on auth state */}
-          <Route path="/" element={<Navigate to={user ? "/home" : "/auth"} replace />} />
-
-          {/* Auth route, redirects to home if user is already logged in */}
+          {/* ... other routes */}
           <Route path="/auth" element={user ? <Navigate to="/home" replace /> : <AuthPage />} />
           
-          {/* Protected routes */}
+          {/* FIX: Add the new route for resetting the password */}
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/profile/:profileId" element={<ProfilePage />} />
-            {/* You can add more protected routes here */}
           </Route>
-
-          {/* Fallback route */}
+          {/* ... other routes */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

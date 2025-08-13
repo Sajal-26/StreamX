@@ -134,8 +134,9 @@ const createRefreshToken = (user) => {
 };
 
 async function addOrUpdateDevice(user, deviceInfo, ip) {
-    const { deviceId, deviceName, os, browser } = deviceInfo;
-    if (!deviceId || !deviceName || !os || !browser) {
+    const { deviceId, name, os, browser } = deviceInfo; 
+    console.log(deviceInfo)
+    if (!deviceId || !name || !os || !browser) {
         throw new Error('Incomplete device info');
     }
 
@@ -156,7 +157,7 @@ async function addOrUpdateDevice(user, deviceInfo, ip) {
     } else {
         user.devices.push({
             deviceId,
-            name: deviceName,
+            name: name,
             os,
             browser,
             location,
@@ -207,7 +208,7 @@ export async function signupRequestHandler(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const now = new Date();
-    const otpExpiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
     const tempUser = new TempUser({
         name: username,
@@ -352,13 +353,23 @@ export async function loginHandler(req, res) {
     await connectDB();
     try {
         const { email, password, device } = req.body;
+        console.log(device)
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required.' });
         }
 
-        const user = await User.findOne({ email });
-        if (!user || !user.password) {
-            return res.status(401).json({ message: 'Invalid credentials.' });
+        const localPart = email.split('@')[0].replace(/\./g, '');
+        const domain = email.split('@')[1];
+        const normalizedEmail = `${localPart}@${domain}`.toLowerCase();
+        
+        const user = await User.findOne({ email: normalizedEmail });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found. Please create an account." });
+        }
+
+        if (!user.password) {
+            return res.status(401).json({ message: 'This account was created using Google. Please sign in with Google or use the "Forgot Password" link to set a password.' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -426,6 +437,7 @@ export async function googleSignInHandler(req, res) {
     await connectDB();
     try {
         const { token: googleToken, device } = req.body;
+        console.log(device)
         if (!googleToken) {
             return res.status(400).json({ message: 'No token provided' });
         }
@@ -446,6 +458,7 @@ export async function googleSignInHandler(req, res) {
                 },
                 $setOnInsert: {
                     email: payload.email,
+                    password: null
                 }
             },
             {
@@ -563,14 +576,19 @@ export const updateUserProfile = async (req, res) => {
 export async function getDevicesHandler(req, res) {
     await connectDB();
     try {
-        const userId = req.query.userId;
+        const userId = req.user.userId;
         const currentDeviceId = req.query.currentDeviceId;
 
         const user = await User.findById(userId);
-        console.log(user)
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         const now = new Date();
+
+        const currentDevice = user.devices.find(d => d.deviceId === currentDeviceId);
+        if (currentDevice) {
+            currentDevice.lastActive = now;
+            await user.save();
+        }
 
         const devices = user.devices.map(d => {
             const lastActiveDate = new Date(d.lastActive);
@@ -584,8 +602,6 @@ export async function getDevicesHandler(req, res) {
                 lastActiveDisplay = lastActiveDate.toLocaleString();
             }
 
-            console.log(d)
-
             return {
                 id: d.deviceId,
                 name: d.name,
@@ -595,7 +611,12 @@ export async function getDevicesHandler(req, res) {
                 lastActive: lastActiveDisplay,
                 isCurrent: currentDeviceId === d.deviceId,
             };
+        }).sort((a, b) => {
+            if (a.isCurrent) return -1;
+            if (b.isCurrent) return 1;
+            return 0;
         });
+
 
         res.json(devices);
     } catch (error) {
@@ -766,4 +787,30 @@ export const logoutHandler = async (req, res) => {
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
     return res.status(200).json({ message: 'Logged out.' });
+};
+
+export const logoutDeviceHandler = async (req, res) => {
+    const { deviceId } = req.body;
+    const userId = req.user.userId;
+
+    if (!deviceId) {
+        return res.status(400).json({ message: 'Device ID is required.' });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        await User.updateOne(
+            { _id: userId },
+            { $pull: { devices: { deviceId: deviceId } } }
+        );
+
+        res.status(200).json({ message: 'Device logged out successfully.' });
+    } catch (error) {
+        console.error('Error logging out device:', error);
+        res.status(500).json({ message: 'Server error while logging out device.' });
+    }
 };

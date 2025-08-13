@@ -22,6 +22,7 @@ import {
     resetPasswordHandler,
     refreshTokenHandler,
     logoutHandler,
+    logoutDeviceHandler, // Import the new handler
     updateLastActiveMiddleware,
 } from './auth.js';
 import { protect } from './authMiddleware.js'; 
@@ -85,6 +86,7 @@ app.get('/api/devices', protect, getDevicesHandler);
 
 app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', protect, logoutHandler);
+app.post('/api/logout-device', protect, logoutDeviceHandler);
 
 app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
   res.status(200).json({  

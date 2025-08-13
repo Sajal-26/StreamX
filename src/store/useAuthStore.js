@@ -40,8 +40,8 @@ const useAuthStore = create((set, get) => ({
     login: async ({ email, password }) => {
         set({ isLoading: true, error: null });
         try {
-            const deviceInfo = getDeviceInfo();
-            const res = await axios.post(`${API_BASE}/login`, { email, password, deviceInfo }, { withCredentials: true });
+            const device = getDeviceInfo();
+            const res = await axios.post(`${API_BASE}/login`, { email, password, device }, { withCredentials: true });
             get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast('Login successful! Welcome back.');
         } catch (err) {
@@ -56,8 +56,8 @@ const useAuthStore = create((set, get) => ({
     signupRequest: async ({ name, email, password }) => {
         set({ isLoading: true, error: null });
         try {
-            const deviceInfo = getDeviceInfo();
-            await axios.post(`${API_BASE}/signup-request`, { name, email, password, deviceInfo }, { withCredentials: true });
+            const device = getDeviceInfo();
+            await axios.post(`${API_BASE}/signup-request`, { name, email, password, device }, { withCredentials: true });
             showSuccessToast("OTP sent to your email!");
             return true;
         } catch (err) {
@@ -73,8 +73,8 @@ const useAuthStore = create((set, get) => ({
     verifyOtp: async ({ email, otp }) => {
         set({ isLoading: true, error: null });
         try {
-            const deviceInfo = getDeviceInfo();
-            const res = await axios.post(`${API_BASE}/verify-otp`, { email, otp, deviceInfo }, { withCredentials: true });
+            const device = getDeviceInfo();
+            const res = await axios.post(`${API_BASE}/verify-otp`, { email, otp, device }, { withCredentials: true });
             get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast("OTP verified. Signup complete!");
             return true;
@@ -118,8 +118,9 @@ const useAuthStore = create((set, get) => ({
         }
         set({ isLoading: true, error: null });
         try {
-            const deviceInfo = getDeviceInfo();
-            const res = await axios.post(`${API_BASE}/auth-google`, { token: googleIdToken, deviceInfo }, { withCredentials: true });
+            const device = getDeviceInfo();
+            console.log(device)
+            const res = await axios.post(`${API_BASE}/auth-google`, { token: googleIdToken, device }, { withCredentials: true });
             get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast('Successfully signed in with Google!');
         } catch (err) {
@@ -133,6 +134,7 @@ const useAuthStore = create((set, get) => ({
 
     logout: async () => {
         try {
+            await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
             showSuccessToast("You have been logged out.");
         } catch (err) {
             console.error("Logout failed on server:", err.response?.data?.message || err.message);
@@ -141,6 +143,20 @@ const useAuthStore = create((set, get) => ({
             Cookies.remove('token');
             delete axios.defaults.headers.common['Authorization'];
             set({ user: null, token: null, error: null });
+        }
+    },
+
+    logoutDevice: async (deviceId) => {
+        set({ isLoading: true });
+        try {
+            await axios.post(`${API_BASE}/logout-device`, { deviceId }, { withCredentials: true });
+            showSuccessToast('Device logged out successfully!');
+            return true;
+        } catch (error) {
+            showErrorToast(error.response?.data?.message || 'Failed to log out device');
+            return false;
+        } finally {
+            set({ isLoading: false });
         }
     },
 
