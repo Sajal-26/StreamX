@@ -18,7 +18,7 @@ const AuthPage = () => {
     const { user, login, logout, loginWithGoogle, signupRequest, verifyOtp, resendOtp, cooldown } = useAuthStore();
 
     const [formData, setFormData] = useState({
-        username: "",
+        name: "",
         email: "",
         password: "",
     });
@@ -33,7 +33,7 @@ const AuthPage = () => {
             login({ email: formData.email, password: formData.password });
         } else {
             const success = await signupRequest({
-                username: formData.username,
+                name: formData.name,
                 email: formData.email,
                 password: formData.password,
             });
@@ -119,7 +119,7 @@ const AuthPage = () => {
             setOtpStatus("success");
             setTimeout(() => {
                 setOtpStep(false);
-                setFormData({ username: "", email: "", password: "" });
+                setFormData({ name: "", email: "", password: "" });
                 setOtp(new Array(6).fill(""));
                 setOtpStatus(null);
             }, 500);
@@ -194,8 +194,8 @@ const AuthPage = () => {
                                         onPaste={index === 0 ? handleOtpPaste : undefined}
                                         ref={(el) => (otpRefs.current[index] = el)}
                                         className={`${styles.otpInput}
-                                                    ${otpStatus === "success" ? styles.otpSuccess : ""} 
-                                                    ${otpStatus === "error" ? styles.otpError : ""}`}
+                                            ${otpStatus === "success" ? styles.otpSuccess : ""} 
+                                            ${otpStatus === "error" ? styles.otpError : ""}`}
                                     />
                                 ))}
                             </div>
@@ -222,9 +222,9 @@ const AuthPage = () => {
                                 <InputWithIcon
                                     icon={<User size={18} />}
                                     type="text"
-                                    name="username"
-                                    placeholder="Username"
-                                    value={formData.username}
+                                    name="name"
+                                    placeholder="Name"
+                                    value={formData.name}
                                     onChange={handleChange}
                                 />
                             )}

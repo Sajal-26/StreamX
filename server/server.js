@@ -1,4 +1,3 @@
-// server/server.js
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -35,7 +34,7 @@ const app = express();
 app.use(helmet());
 
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://10.223.85.104:5173/', 'http://192.168.56.1:5173/'],
+  origin: ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'],
   credentials: true,
 }));
 

@@ -17,12 +17,14 @@
   background-color: var(--color-bg-dark);
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
+  justify-content: flex-start;
+  padding: 2rem 1rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--color-light-text);
   box-sizing: border-box;
+  gap: 2rem;
 }
 
 .container {
@@ -44,11 +46,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: var(--color-bg-dark);
+  height: 100%;
 }
 
-/* 3. Sidebar */
+/* 3. Sidebar (for Settings Page) */
 .sidebar {
   width: 100%;
   background-color: var(--color-bg-sidebar);
@@ -113,7 +114,7 @@
   word-break: break-all;
 }
 
-/* 4. Navigation Buttons */
+/* 4. Navigation Buttons (for Settings Page) */
 .nav {
   display: flex;
   flex-wrap: wrap;
@@ -151,7 +152,7 @@
   display: none; /* Hidden unless needed */
 }
 
-/* 5. Main Content */
+/* 5. Main Content (for Settings Page) */
 .content {
   flex: 1;
   padding: 2.5rem;
@@ -515,7 +516,180 @@
     font-weight: 700;
 }
 
-/* 10. Responsive Styles */
+/* 10. NEW STYLES FOR PROFILE PAGE */
+.profilePageContainer {
+  width: 100%;
+  max-width: 900px;
+  background-color: var(--color-bg);
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.profileHeaderNew {
+  position: relative;
+  height: 250px;
+}
+
+.profileCover {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #1f2937, #dc2626);
+  background-size: 200% 200%;
+  animation: gradientBG 10s ease infinite;
+  transition: background 0.5s ease-in-out;
+}
+
+@keyframes gradientBG {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+.profileAvatarContainer {
+  position: absolute;
+  bottom: -75px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.profileAvatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid var(--color-bg);
+  background-color: var(--color-bg);
+}
+
+.profileContent {
+  padding: 90px 2rem 2rem;
+}
+
+.profileInfo {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.profileName {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+.profileEmail {
+  font-size: 1rem;
+  color: var(--color-muted-text);
+  margin-top: 0.25rem;
+}
+
+.editProfileButton {
+  margin-top: 1rem;
+  background-color: var(--color-muted-bg);
+  color: var(--color-light-text);
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editProfileButton:hover {
+  background-color: var(--color-highlight);
+  border-color: var(--color-highlight);
+}
+
+.profileDetails {
+  background-color: var(--color-bg-sidebar);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+}
+
+.detailsTitle {
+  margin: 0 0 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.detailIcon {
+  color: var(--color-highlight);
+  flex-shrink: 0;
+}
+
+.detailItem div {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailLabel {
+  font-size: 0.8rem;
+  color: var(--color-muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detailValue {
+  font-size: 1rem;
+  color: var(--color-light-text);
+  font-weight: 500;
+}
+
+.activityContainer {
+  width: 100%;
+  max-width: 900px;
+  padding: 1.5rem;
+  text-align: center;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.activityContainer h4 {
+  margin: 0 0 0.5rem;
+  color: white;
+}
+.activityContainer p {
+  margin: 0;
+  color: var(--color-muted-text);
+}
+
+.backButton {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted-text);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+.backButton:hover {
+  background-color: var(--color-muted-bg);
+  color: white;
+}
+
+
+/* 11. Responsive Styles */
 @media (max-width: 768px) {
   .container {
     min-height: 95vh;
@@ -533,5 +707,18 @@
   .profilePicContainer {
     width: 100px;
     height: 100px;
+  }
+  .profileHeaderNew {
+    height: 200px;
+  }
+  .profileAvatar {
+    width: 120px;
+    height: 120px;
+  }
+  .profileAvatarContainer {
+    bottom: -60px;
+  }
+  .profileContent {
+    padding-top: 75px;
   }
 }

@@ -1,4 +1,3 @@
-// auth.js
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
@@ -168,9 +167,9 @@ async function updateDeviceLastActive(userId, deviceId) {
 
 export async function signupRequestHandler(req, res) {
     await connectDB();
-    const { username, email, password } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!username || !email || !password) {
+    if (!name || !email || !password) {
         return res.status(400).json({ message: "All fields are required." });
     }
 
@@ -194,7 +193,7 @@ export async function signupRequestHandler(req, res) {
     const otpExpiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
     const tempUser = new TempUser({
-        name: username,
+        name: name,
         email,
         password: hashedPassword,
         otp,
@@ -223,7 +222,7 @@ export async function signupRequestHandler(req, res) {
 
 export async function verifyOtpHandler(req, res) {
     await connectDB();
-    const { email, otp } = req.body;
+    const { email, otp, device } = req.body;
 
     if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required.' });
 
@@ -260,8 +259,15 @@ export async function verifyOtpHandler(req, res) {
     const refreshToken = createRefreshToken(newUser);
 
     const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    newUser.refreshTokenHash = refreshHash;
-    await newUser.save();
+    
+    const ip = extractClientIP(req);
+    if (device) {
+        try {
+            await addOrUpdateDevice(newUser, device, ip, refreshHash);
+        } catch (err) {
+            console.error('Device add/update failed during OTP verification:', err);
+        }
+    }
 
     res.cookie('accessToken', accessToken, {
         httpOnly: true,
@@ -450,18 +456,15 @@ export async function googleSignInHandler(req, res) {
         const refreshToken = createRefreshToken(updatedUser);
 
         const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-        updatedUser.refreshTokenHash = refreshHash;
-
+        
         const ip = extractClientIP(req);
         let deviceServerToken = null;
         if (device) {
             try {
-                deviceServerToken = await addOrUpdateDevice(updatedUser, device, ip);
+                deviceServerToken = await addOrUpdateDevice(updatedUser, device, ip, refreshHash);
             } catch (err) {
                 console.error('Device add/update failed:', err);
             }
-        } else {
-            await updatedUser.save();
         }
 
         sendLoginNotificationEmail(updatedUser, ip);
@@ -470,7 +473,7 @@ export async function googleSignInHandler(req, res) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
-            maxAge: 15 * 60 * 60 * 1000,
+            maxAge: 15 * 60 * 1000,
         });
 
         res.cookie('refreshToken', refreshToken, {
@@ -663,7 +666,7 @@ export const forgotPasswordHandler = async (req, res) => {
             const resetToken = crypto.randomBytes(32).toString('hex');
             const resetHash = crypto.createHash('sha256').update(resetToken).digest('hex');
             user.passwordResetTokenHash = resetHash;
-            user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+            user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
             await user.save();
 
             const origin = req.headers.origin || process.env.FRONTEND_URL || 'http://localhost:5173';

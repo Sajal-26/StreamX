@@ -7,10 +7,8 @@ import ImageCropper from '../components/ImageCropper';
 import profileAvatars from '../assets/profileData.json';
 import { showErrorToast } from '../components/Toast';
 
-// Renamed back to ProfilePage to match the file name, but it functions as the Settings page.
 const Settings = () => {
     const navigate = useNavigate();
-    // The user object is the currently authenticated user.
     const { user, fetchProfile, updateProfile, logout } = useAuthStore();
 
     const [profileData, setProfileData] = useState(null);
@@ -24,7 +22,6 @@ const Settings = () => {
 
     useEffect(() => {
         const loadProfile = async () => {
-            // Fetch the profile using the logged-in user's ID from the auth store.
             const data = await fetchProfile(user._id);
             if (data) {
                 const formattedData = {
@@ -34,13 +31,10 @@ const Settings = () => {
                 setProfileData(formattedData);
                 setFormData(formattedData);
             } else {
-                // If the user's own profile can't be fetched, something is wrong.
-                // Log them out and redirect to the auth page for safety.
                 logout();
                 navigate('/auth');
             }
         };
-        // Ensure the user object is available before trying to fetch the profile.
         if (user?._id) {
             loadProfile();
         }
@@ -59,7 +53,7 @@ const Settings = () => {
                 setAvatarModalOpen(false);
             });
             reader.readAsDataURL(e.target.files[0]);
-            e.target.value = null; // Reset file input
+            e.target.value = null;
         }
     };
 
@@ -75,10 +69,8 @@ const Settings = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Always use the authenticated user's ID for updates.
         const success = await updateProfile(user._id, formData);
         if (success) {
-            // Refetch the profile data to ensure UI is up-to-date
             const data = await fetchProfile(user._id);
             if (data) {
                 const formattedData = {
@@ -91,7 +83,6 @@ const Settings = () => {
         }
     };
 
-    // Display a loading state while fetching the user's profile data.
     if (!profileData) {
         return <div className={styles.loading}>Loading Settings...</div>;
     }
