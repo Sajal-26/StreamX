@@ -41,7 +41,8 @@ export const getDeviceInfo = () => {
 
 const useAuthStore = create((set, get) => ({
     user: JSON.parse(localStorage.getItem('user-info')) || null,
-    token: Cookies.get('token') || null,
+    // The 'token' in the store is the access token. The refresh token is only in the cookie.
+    token: Cookies.get('accessToken') || null, 
     isLoading: false,
     error: null,
     cooldown: 0,
@@ -50,7 +51,8 @@ const useAuthStore = create((set, get) => ({
         const { user, token } = data;
         localStorage.setItem('user-info', JSON.stringify(user));
         if (token) {
-            Cookies.set('token', token, { expires: 30 });
+            // We only set the short-lived access token in the store state
+            Cookies.set('accessToken', token, { expires: 1 / 96 }); // 15 minutes
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         }
         set({ user, token, error: null });
@@ -60,7 +62,8 @@ const useAuthStore = create((set, get) => ({
       const wasLoggedIn = !!get().user;
 
       localStorage.removeItem('user-info');
-      Cookies.remove('token');
+      Cookies.remove('accessToken');
+      Cookies.remove('refreshToken'); // Ensure both tokens are cleared
       delete axios.defaults.headers.common['Authorization'];
       set({ user: null, token: null, error: null });
 
@@ -79,7 +82,8 @@ const useAuthStore = create((set, get) => ({
         try {
             const device = getDeviceInfo();
             const res = await axios.post(`${API_BASE}/login`, { email, password, device }, { withCredentials: true });
-            get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
+            // After login, the accessToken is now in the cookie, let's get it
+            get().setAuthData({ user: res.data.user, token: Cookies.get('accessToken') });
             showSuccessToast('Login successful! Welcome back.');
         } catch (err) {
             const serverMsg = err.response?.data?.message || err.message;
@@ -112,7 +116,7 @@ const useAuthStore = create((set, get) => ({
         try {
             const device = getDeviceInfo();
             const res = await axios.post(`${API_BASE}/verify-otp`, { email, otp, device }, { withCredentials: true });
-            get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
+            get().setAuthData({ user: res.data.user, token: Cookies.get('accessToken') });
             showSuccessToast("OTP verified. Signup complete!");
             return true;
         } catch (err) {
@@ -157,7 +161,7 @@ const useAuthStore = create((set, get) => ({
         try {
             const device = getDeviceInfo();
             const res = await axios.post(`${API_BASE}/auth-google`, { token: googleIdToken, device }, { withCredentials: true });
-            get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
+            get().setAuthData({ user: res.data.user, token: Cookies.get('accessToken') });
             showSuccessToast('Successfully signed in with Google!');
         } catch (err) {
             const serverMsg = err.response?.data?.message || 'Google login failed. Please try again.';
@@ -268,6 +272,7 @@ const useAuthStore = create((set, get) => ({
 
 }));
 
+// Add device ID to all outgoing API requests
 axios.interceptors.request.use(
   (config) => {
     if (config.url.startsWith('/api') || config.url.startsWith(API_BASE)) {
@@ -279,23 +284,76 @@ axios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// This flag prevents multiple refresh attempts at the same time
+let isRefreshing = false;
+// This array will hold all the requests that failed due to an expired token
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+// This is the new response interceptor for automatic token refresh
 axios.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
     const hasUser = !!useAuthStore.getState().user;
 
-    if (hasUser && error.response && error.response.status === 401) {
-      const message = error.response.data.message || 'Your session has expired. Please log in again.';
-      showErrorToast(message);
-      useAuthStore.getState().logout();
+    // Check if the error is 401, there's a user, it's not a retry, and it's not the refresh token route itself
+    if (hasUser && error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== `${API_BASE}/refresh-token`) {
       
-      return new Promise(() => {}); 
+      if (isRefreshing) {
+        // If a refresh is already in progress, we'll wait for it to complete
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          return axios(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Attempt to get a new access token using the refresh token
+        await axios.post(`${API_BASE}/refresh-token`, {}, { withCredentials: true });
+        
+        const newAccessToken = Cookies.get('accessToken');
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
+        originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
+        
+        // Process any requests that were queued while refreshing
+        processQueue(null, newAccessToken);
+
+        // Retry the original request with the new token
+        return axios(originalRequest);
+
+      } catch (refreshError) {
+        // If the refresh token is also invalid, log the user out
+        processQueue(refreshError, null);
+        showErrorToast('Your session has expired. Please log in again.');
+        useAuthStore.getState().logout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
 
-const initialToken = Cookies.get('token');
+
+const initialToken = Cookies.get('accessToken');
 if (initialToken) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${initialToken}`;
 }

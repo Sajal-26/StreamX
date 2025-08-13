@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
-import ProfilePage from './pages/ProfilePage';
+import Settings from './pages/Settings';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ProfilePage from './pages/ProfilePage';
 import { Toast } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import useAuthStore, { getDeviceInfo } from './store/useAuthStore'; 
@@ -49,9 +50,10 @@ function App() {
         <Routes>
           <Route path="/auth" element={user ? <Navigate to="/home" replace /> : <AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/profile/:profileId" element={<ProfilePage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
-            <Route path="/profile/:profileId" element={<ProfilePage />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to={user ? "/home" : "/auth"} replace />} />
         </Routes>

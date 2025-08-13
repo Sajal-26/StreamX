@@ -10,6 +10,10 @@ body,
   font-family: 'Fira Mono', monospace;
 }
 
+input[type="date"] {
+  color-scheme: dark;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }

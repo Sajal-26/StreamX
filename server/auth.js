@@ -713,14 +713,14 @@ export const resetPasswordHandler = async (req, res) => {
 };
 
 export const refreshTokenHandler = async (req, res) => {
-    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
     if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided.' });
 
     try {
         const payload = jwt.verify(refreshToken, process.env.JWT_SECRET);
-        const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+        const oldRefreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-        const deviceSession = await Device.findOne({ userId: payload.userId, refreshTokenHash: refreshHash });
+        const deviceSession = await Device.findOne({ userId: payload.userId, refreshTokenHash: oldRefreshHash });
 
         if (!deviceSession) {
             res.clearCookie('accessToken');
@@ -731,12 +731,25 @@ export const refreshTokenHandler = async (req, res) => {
         const user = await User.findById(payload.userId);
         if (!user) return res.status(401).json({ message: 'User not found.' });
 
-        const newAccess = createAccessToken(user);
-        res.cookie('accessToken', newAccess, {
+        const newAccessToken = createAccessToken(user);
+        const newRefreshToken = createRefreshToken(user);
+        const newRefreshHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+
+        deviceSession.refreshTokenHash = newRefreshHash;
+        deviceSession.lastActive = new Date();
+        await deviceSession.save();
+
+        res.cookie('accessToken', newAccessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
             maxAge: 15 * 60 * 1000,
+        });
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return res.status(200).json({ message: 'Access token refreshed.' });
     } catch (err) {
