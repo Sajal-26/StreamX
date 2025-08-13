@@ -2,21 +2,40 @@ import { create } from "zustand";
 import axios from "axios";
 import { showSuccessToast, showErrorToast } from '../components/Toast';
 import Cookies from 'js-cookie';
-// import UAParser from "ua-parser-js";
 import { UAParser } from "ua-parser-js";
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = "/api";
 
-// Utility: get device/browser info
-const getDeviceInfo = () => {
+const getBrowserInstanceId = () => {
+    let instanceId = localStorage.getItem('browserInstanceId');
+    if (!instanceId) {
+        if (self.crypto && self.crypto.randomUUID) {
+            instanceId = self.crypto.randomUUID();
+        } else {
+            console.warn('crypto.randomUUID not available. Using a fallback method.');
+            instanceId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = (Math.random() * 16) | 0;
+                const v = c === 'x' ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+            });
+        }
+        localStorage.setItem('browserInstanceId', instanceId);
+    }
+    return instanceId;
+};
+
+export const getDeviceInfo = () => {
     const parser = new UAParser();
     const result = parser.getResult();
+    const browserInstanceId = getBrowserInstanceId();
+    const deviceId = `${result.os.name || 'UnknownOS'}-${result.browser.name || 'UnknownBrowser'}-${browserInstanceId}`;
+
     return {
-        deviceId: `${result.device.vendor || "Unknown"}-${result.device.model || "Unknown"}-${result.os.name || "Unknown"}-${result.browser.name || "Unknown"}`,
-        name: result.device.model || result.device.type || "Unknown Device",
+        deviceId: deviceId,
+        name: result.device.model || result.device.type || "Desktop",
         os: `${result.os.name || "Unknown OS"} ${result.os.version || ""}`.trim(),
         browser: `${result.browser.name || "Unknown Browser"} ${result.browser.version || ""}`.trim(),
-        location: null // Optional: can be filled from backend using IP
+        location: null
     };
 };
 
@@ -37,6 +56,24 @@ const useAuthStore = create((set, get) => ({
         set({ user, token, error: null });
     },
 
+    logout: async () => {
+      const wasLoggedIn = !!get().user;
+
+      localStorage.removeItem('user-info');
+      Cookies.remove('token');
+      delete axios.defaults.headers.common['Authorization'];
+      set({ user: null, token: null, error: null });
+
+      if (wasLoggedIn) {
+        showSuccessToast("You have been logged out.");
+        try {
+          await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
+        } catch (err) {
+          console.error("Server logout cleanup failed:", err.response?.data?.message || err.message);
+        }
+      }
+    },
+    
     login: async ({ email, password }) => {
         set({ isLoading: true, error: null });
         try {
@@ -53,11 +90,11 @@ const useAuthStore = create((set, get) => ({
         }
     },
 
-    signupRequest: async ({ name, email, password }) => {
+    signupRequest: async ({ username, email, password }) => {
         set({ isLoading: true, error: null });
         try {
             const device = getDeviceInfo();
-            await axios.post(`${API_BASE}/signup-request`, { name, email, password, device }, { withCredentials: true });
+            await axios.post(`${API_BASE}/signup-request`, { username, email, password, device }, { withCredentials: true });
             showSuccessToast("OTP sent to your email!");
             return true;
         } catch (err) {
@@ -119,7 +156,6 @@ const useAuthStore = create((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const device = getDeviceInfo();
-            console.log(device)
             const res = await axios.post(`${API_BASE}/auth-google`, { token: googleIdToken, device }, { withCredentials: true });
             get().setAuthData({ user: res.data.user, token: Cookies.get('token') });
             showSuccessToast('Successfully signed in with Google!');
@@ -129,20 +165,6 @@ const useAuthStore = create((set, get) => ({
             showErrorToast(serverMsg);
         } finally {
             set({ isLoading: false });
-        }
-    },
-
-    logout: async () => {
-        try {
-            await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
-            showSuccessToast("You have been logged out.");
-        } catch (err) {
-            console.error("Logout failed on server:", err.response?.data?.message || err.message);
-        } finally {
-            localStorage.removeItem('user-info');
-            Cookies.remove('token');
-            delete axios.defaults.headers.common['Authorization'];
-            set({ user: null, token: null, error: null });
         }
     },
 
@@ -243,7 +265,35 @@ const useAuthStore = create((set, get) => ({
             set({ isLoading: false });
         }
     },
+
 }));
+
+axios.interceptors.request.use(
+  (config) => {
+    if (config.url.startsWith('/api') || config.url.startsWith(API_BASE)) {
+      const deviceInfo = getDeviceInfo();
+      config.headers['x-device-id'] = deviceInfo.deviceId;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const hasUser = !!useAuthStore.getState().user;
+
+    if (hasUser && error.response && error.response.status === 401) {
+      const message = error.response.data.message || 'Your session has expired. Please log in again.';
+      showErrorToast(message);
+      useAuthStore.getState().logout();
+      
+      return new Promise(() => {}); 
+    }
+    return Promise.reject(error);
+  }
+);
 
 const initialToken = Cookies.get('token');
 if (initialToken) {

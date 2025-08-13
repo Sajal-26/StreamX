@@ -1,13 +1,33 @@
+import React, { useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const HomePage = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const updateActivity = async () => {
+      try {
+        const deviceInfo = getDeviceInfo();
+        await axios.get('/api/profile', {
+          headers: {
+            'x-device-id': deviceInfo.deviceId
+          }
+        });
+      } catch (error) {
+        console.error('Failed to update activity', error);
+      }
+    };
+
+    const intervalId = setInterval(updateActivity, 5 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   const handleLogout = () => {
     logout();
-    // Redirect is handled elsewhere (e.g., App.jsx)
   };
 
   const handleProfileClick = () => {
@@ -15,15 +35,15 @@ const HomePage = () => {
   };
 
   return (
-    <div style={{ 
-        backgroundColor: '#0f172a', 
-        color: 'white', 
-        minHeight: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        fontFamily: 'sans-serif'
+    <div style={{
+      backgroundColor: '#0f172a',
+      color: 'white',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'sans-serif'
     }}>
       <div style={{ textAlign: 'center', padding: '2rem' }}>
         <h1 style={{ fontSize: '3rem', color: '#e11d48', marginBottom: '1rem' }}>Welcome to StreamX</h1>
@@ -33,7 +53,7 @@ const HomePage = () => {
         <p style={{ fontSize: '1rem', color: '#94a3b8' }}>({user?.email})</p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>
-          <button 
+          <button
             onClick={handleProfileClick}
             style={{
               padding: '0.75rem 1.5rem',
@@ -52,7 +72,7 @@ const HomePage = () => {
             Profile
           </button>
 
-          <button 
+          <button
             onClick={handleLogout}
             style={{
               padding: '0.75rem 1.5rem',

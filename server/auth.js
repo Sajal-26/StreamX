@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import validator from 'validator';
 import User from './models/User.js';
 import TempUser from './models/TempUser.js';
+import Device from './models/Device.js';
 import { connectDB } from './db.js';
 
 const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID;
@@ -69,7 +70,6 @@ const sendLoginNotificationEmail = async (user, ip) => {
         };
 
         await transporter.sendMail(mailOptions);
-        console.log(`Login notification email sent to ${user.email}`);
     } catch (error) {
         console.error(`Failed to send login notification email to ${user.email}:`, error);
     }
@@ -133,43 +133,26 @@ const createRefreshToken = (user) => {
     return jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-async function addOrUpdateDevice(user, deviceInfo, ip) {
-    const { deviceId, name, os, browser } = deviceInfo; 
-    console.log(deviceInfo)
+async function addOrUpdateDevice(user, deviceInfo, ip, refreshTokenHash) {
+    const { deviceId, name, os, browser } = deviceInfo;
     if (!deviceId || !name || !os || !browser) {
         throw new Error('Incomplete device info');
     }
-
     const geo = geoip.lookup(ip);
     const location = geo ? `${geo.city || ''}, ${geo.country || ''}` : 'Unknown location';
-
     const now = new Date();
+    const serverToken = crypto.randomBytes(32).toString('hex');
+    const serverTokenHash = crypto.createHash('sha256').update(serverToken).digest('hex');
 
-    const deviceIndex = user.devices.findIndex(d => d.deviceId === deviceId);
-
-    const deviceServerToken = crypto.randomBytes(32).toString('hex');
-    const serverTokenHash = crypto.createHash('sha256').update(deviceServerToken).digest('hex');
-
-    if (deviceIndex > -1) {
-        user.devices[deviceIndex].lastActive = now;
-        user.devices[deviceIndex].location = location;
-        user.devices[deviceIndex].serverTokenHash = serverTokenHash;
-    } else {
-        user.devices.push({
-            deviceId,
-            name: name,
-            os,
-            browser,
-            location,
-            lastActive: now,
-            signedInAt: now,
-            serverTokenHash,
-        });
-    }
-
-    await user.save();
-
-    return deviceServerToken;
+    await Device.findOneAndUpdate(
+        { userId: user._id, deviceId: deviceId },
+        {
+            $set: { name, os, browser, location, lastActive: now, serverTokenHash, refreshTokenHash },
+            $setOnInsert: { signedInAt: now }
+        },
+        { upsert: true, new: true }
+    );
+    return serverToken;
 }
 
 async function updateDeviceLastActive(userId, deviceId) {
@@ -353,7 +336,6 @@ export async function loginHandler(req, res) {
     await connectDB();
     try {
         const { email, password, device } = req.body;
-        console.log(device)
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required.' });
         }
@@ -381,14 +363,13 @@ export async function loginHandler(req, res) {
         const refreshToken = createRefreshToken(user);
 
         const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-        user.refreshTokenHash = refreshHash;
 
         const ip = extractClientIP(req);
 
         let deviceServerToken = null;
         if (device) {
             try {
-                deviceServerToken = await addOrUpdateDevice(user, device, ip);
+                deviceServerToken = await addOrUpdateDevice(user, device, ip, refreshHash);
             } catch (err) {
                 console.error('Device add/update failed:', err);
             }
@@ -437,7 +418,6 @@ export async function googleSignInHandler(req, res) {
     await connectDB();
     try {
         const { token: googleToken, device } = req.body;
-        console.log(device)
         if (!googleToken) {
             return res.status(400).json({ message: 'No token provided' });
         }
@@ -452,11 +432,9 @@ export async function googleSignInHandler(req, res) {
         const updatedUser = await User.findOneAndUpdate(
             { email: payload.email },
             {
-                $set: {
+                $setOnInsert: {
                     name: payload.name,
                     picture: payload.picture,
-                },
-                $setOnInsert: {
                     email: payload.email,
                     password: null
                 }
@@ -579,18 +557,18 @@ export async function getDevicesHandler(req, res) {
         const userId = req.user.userId;
         const currentDeviceId = req.query.currentDeviceId;
 
-        const user = await User.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        const devicesFromDB = await Device.find({ userId });
+        if (!devicesFromDB) return res.status(404).json({ message: 'No devices found' });
 
         const now = new Date();
 
-        const currentDevice = user.devices.find(d => d.deviceId === currentDeviceId);
+        const currentDevice = devicesFromDB.find(d => d.deviceId === currentDeviceId);
         if (currentDevice) {
             currentDevice.lastActive = now;
-            await user.save();
+            await currentDevice.save();
         }
 
-        const devices = user.devices.map(d => {
+        const devices = devicesFromDB.map(d => {
             const lastActiveDate = new Date(d.lastActive);
             const diffMs = now - lastActiveDate;
             const diffMinutes = diffMs / 1000 / 60;
@@ -625,31 +603,19 @@ export async function getDevicesHandler(req, res) {
     }
 }
 
-export async function updateLastActiveMiddleware(req, res, next) {
+export const updateLastActiveMiddleware = async (req, res, next) => {
     try {
         const userId = req.user?.userId;
-        const deviceToken = req.headers['x-device-token'];
         const deviceId = req.headers['x-device-id'];
 
-        if (userId && (deviceId || deviceToken)) {
-            if (deviceToken && !deviceId) {
-                const user = await User.findById(userId);
-                if (user) {
-                    const tokenHash = crypto.createHash('sha256').update(String(deviceToken)).digest('hex');
-                    const device = user.devices.find(d => d.serverTokenHash === tokenHash);
-                    if (device) {
-                        await updateDeviceLastActive(userId, device.deviceId);
-                    }
-                }
-            } else if (deviceId) {
-                await updateDeviceLastActive(userId, deviceId);
-            }
+        if (userId && deviceId) {
+            await updateDeviceLastActive(userId, deviceId);
         }
     } catch (error) {
         console.error('Error updating device last active:', error);
     }
     next();
-}
+};
 
 export const changePasswordHandler = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
@@ -752,11 +718,18 @@ export const refreshTokenHandler = async (req, res) => {
 
     try {
         const payload = jwt.verify(refreshToken, process.env.JWT_SECRET);
-        const user = await User.findById(payload.userId);
-        if (!user || !user.refreshTokenHash) return res.status(401).json({ message: 'Invalid refresh token.' });
-
         const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-        if (refreshHash !== user.refreshTokenHash) return res.status(401).json({ message: 'Invalid refresh token.' });
+
+        const deviceSession = await Device.findOne({ userId: payload.userId, refreshTokenHash: refreshHash });
+
+        if (!deviceSession) {
+            res.clearCookie('accessToken');
+            res.clearCookie('refreshToken');
+            return res.status(401).json({ message: 'Session has been terminated. Please log in again.' });
+        }
+
+        const user = await User.findById(payload.userId);
+        if (!user) return res.status(401).json({ message: 'User not found.' });
 
         const newAccess = createAccessToken(user);
         res.cookie('accessToken', newAccess, {
@@ -765,7 +738,6 @@ export const refreshTokenHandler = async (req, res) => {
             sameSite: 'Strict',
             maxAge: 15 * 60 * 1000,
         });
-
         return res.status(200).json({ message: 'Access token refreshed.' });
     } catch (err) {
         console.error('Refresh token error:', err);
@@ -775,11 +747,10 @@ export const refreshTokenHandler = async (req, res) => {
 
 export const logoutHandler = async (req, res) => {
     try {
-        const userId = req.user.userId;
-        const user = await User.findById(userId);
-        if (user) {
-            user.refreshTokenHash = undefined;
-            await user.save();
+        const refreshToken = req.cookies?.refreshToken;
+        if (refreshToken) {
+            const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+            await Device.deleteOne({ refreshTokenHash: refreshHash });
         }
     } catch (err) {
         console.error('Logout error:', err);
@@ -798,15 +769,11 @@ export const logoutDeviceHandler = async (req, res) => {
     }
 
     try {
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found.' });
-        }
+        const result = await Device.deleteOne({ userId, deviceId });
 
-        await User.updateOne(
-            { _id: userId },
-            { $pull: { devices: { deviceId: deviceId } } }
-        );
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: 'Device not found for this user.' });
+        }
 
         res.status(200).json({ message: 'Device logged out successfully.' });
     } catch (error) {
