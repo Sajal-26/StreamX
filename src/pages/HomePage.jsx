@@ -1,39 +1,7 @@
-import React, { useEffect } from 'react';
 import useAuthStore from '../store/useAuthStore';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const HomePage = () => {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const updateActivity = async () => {
-      try {
-        const deviceInfo = getDeviceInfo();
-        await axios.get('/api/profile', {
-          headers: {
-            'x-device-id': deviceInfo.deviceId
-          }
-        });
-      } catch (error) {
-        console.error('Failed to update activity', error);
-      }
-    };
-
-    const intervalId = setInterval(updateActivity, 5 * 60 * 1000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  const handleProfileClick = () => {
-    navigate(`/profile/${user?._id}`);
-  };
-
+  const { user } = useAuthStore();
   return (
     <div style={{
       backgroundColor: '#0f172a',
@@ -51,46 +19,6 @@ const HomePage = () => {
           Logged in as: <strong style={{ color: 'white' }}>{user?.name || 'User'}</strong>
         </p>
         <p style={{ fontSize: '1rem', color: '#94a3b8' }}>({user?.email})</p>
-
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>
-          <button
-            onClick={handleProfileClick}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#3b82f6',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: 'bold',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              transition: 'background-color 0.3s ease'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-          >
-            Profile
-          </button>
-
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#e11d48',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: 'bold',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              transition: 'background-color 0.3s ease'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#be123c'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#e11d48'}
-          >
-            Logout
-          </button>
-        </div>
       </div>
     </div>
   );

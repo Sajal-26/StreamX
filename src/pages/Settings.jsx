@@ -134,7 +134,7 @@ const Settings = () => {
                         <div className={styles.profileHeader}>
                             <div className={styles.profilePicContainer}>
                                 <img
-                                    src={formData.picture || 'https://placehold.co/128x128/1f2937/ffffff?text=User'}
+                                    src={formData.picture || 'https://occ-0-4995-2164.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABW7Wui3ZqHqBvl3R__TmY0sDZF-xBxJJinhVWRwu7OmYkF2bdwH4nqfnyT3YQ-JshQvap33bDbRLACSoadpKwbIQIBktdtHjxw.png?r=201'}
                                     alt="Profile"
                                     className={styles.profilePic}
                                     onClick={() => formData.picture && setProfilePicModalOpen(true)}
@@ -416,7 +416,7 @@ const AvatarGallery = ({ currentAvatar, onSelect, onClose, onUploadClick }) => {
                 <div className={styles.avatarPicker}>
                     <div className={styles.avatarPickerHeader}>
                         <div className={styles.currentAvatarDisplay}>
-                            <img src={currentAvatar || 'https://placehold.co/128x128/1f2937/ffffff?text=User'} alt="Current Avatar" />
+                            <img src={currentAvatar || 'https://occ-0-4995-2164.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABW7Wui3ZqHqBvl3R__TmY0sDZF-xBxJJinhVWRwu7OmYkF2bdwH4nqfnyT3YQ-JshQvap33bDbRLACSoadpKwbIQIBktdtHjxw.png?r=201'} alt="Current Avatar" />
                             <span>Current</span>
                         </div>
                         <button className={styles.uploadTile} onClick={onUploadClick}>

@@ -4,7 +4,6 @@ import 'react-image-crop/dist/ReactCrop.css';
 import styles from '../styles/Profile.module.css';
 import { Crop, X } from 'lucide-react';
 
-// Function to get the cropped image data
 function getCroppedImg(image, crop, fileName) {
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
@@ -44,7 +43,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
           unit: '%',
           width: 90,
         },
-        1, // Aspect ratio 1:1
+        1,
         width,
         height
       ),

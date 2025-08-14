@@ -21,6 +21,7 @@
   align-items: center;
   justify-content: flex-start;
   padding: 2rem 1rem;
+  padding-top: 120px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--color-light-text);
   box-sizing: border-box;
@@ -577,12 +578,6 @@
   font-weight: 700;
   margin: 0;
   color: white;
-}
-
-.profileEmail {
-  font-size: 1rem;
-  color: var(--color-muted-text);
-  margin-top: 0.25rem;
 }
 
 .editProfileButton {

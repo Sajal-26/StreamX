@@ -71,7 +71,7 @@ const ProfilePage = () => {
                     <div className={styles.profileAvatarContainer}>
                         <img
                             ref={imgRef}
-                            src={profileData.picture || 'https://placehold.co/150x150/1f2937/ffffff?text=User'}
+                            src={profileData.picture || 'https://occ-0-4995-2164.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABW7Wui3ZqHqBvl3R__TmY0sDZF-xBxJJinhVWRwu7OmYkF2bdwH4nqfnyT3YQ-JshQvap33bDbRLACSoadpKwbIQIBktdtHjxw.png?r=201'}
                             alt="Profile"
                             className={styles.profileAvatar}
                             onLoad={handleImageLoad}
@@ -83,7 +83,6 @@ const ProfilePage = () => {
                 <main className={styles.profileContent}>
                     <div className={styles.profileInfo}>
                         <h2 className={styles.profileName}>{profileData.name}</h2>
-                        <p className={styles.profileEmail}>{profileData.email}</p>
                         {isOwnProfile && (
                              <button onClick={() => navigate('/settings')} className={styles.editProfileButton}>
                                 Edit Profile
@@ -99,13 +98,6 @@ const ProfilePage = () => {
                                 <div>
                                     <span className={styles.detailLabel}>Full Name</span>
                                     <span className={styles.detailValue}>{profileData.name}</span>
-                                </div>
-                            </div>
-                            <div className={styles.detailItem}>
-                                <Mail size={20} className={styles.detailIcon} />
-                                <div>
-                                    <span className={styles.detailLabel}>Email</span>
-                                    <span className={styles.detailValue}>{profileData.email}</span>
                                 </div>
                             </div>
                             <div className={styles.detailItem}>

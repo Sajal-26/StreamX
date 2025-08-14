@@ -1,10 +1,8 @@
-// src/pages/ResetPasswordPage.jsx
-
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { showSuccessToast, showErrorToast } from '../components/Toast';
-import styles from '../styles/Auth.module.css'; // Reusing auth styles
+import styles from '../styles/Auth.module.css';
 import Logo from '../assets/logo.png';
 
 const ResetPasswordPage = () => {

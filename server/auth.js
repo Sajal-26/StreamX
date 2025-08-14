@@ -155,14 +155,16 @@ async function addOrUpdateDevice(user, deviceInfo, ip, refreshTokenHash) {
 }
 
 async function updateDeviceLastActive(userId, deviceId) {
-    const user = await User.findById(userId);
-    if (!user) return;
+    if (!userId || !deviceId) return;
 
-    const device = user.devices.find(d => d.deviceId === deviceId);
-    if (!device) return;
-
-    device.lastActive = new Date();
-    await user.save();
+    try {
+        await Device.findOneAndUpdate(
+            { userId: userId, deviceId: deviceId },
+            { $set: { lastActive: new Date() } }
+        );
+    } catch (error) {
+        console.error('Failed to update device last active time:', error);
+    }
 }
 
 export async function signupRequestHandler(req, res) {

@@ -237,10 +237,19 @@ const useAuthStore = create((set, get) => ({
         const deviceInfo = getDeviceInfo();
         const currentDeviceId = deviceInfo.deviceId;
         try {
-            const res = await axios.get(`${API_BASE}/devices`, { params: { currentDeviceId, userId }, withCredentials: true });
+            const res = await axios.get(`${API_BASE}/devices`, {
+                params: { currentDeviceId, userId },
+                headers: {
+                    'x-device-id': currentDeviceId
+                },
+                withCredentials: true
+            });
             return res.data || [];
         } catch (error) {
             console.error(error.response?.data?.message || 'Failed to fetch devices');
+            if (error.response?.status !== 401) {
+                showErrorToast(error.response?.data?.message || 'Failed to fetch devices');
+            }
             return null; 
         } finally {
             set({ isLoading: false });

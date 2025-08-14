@@ -1,4 +1,3 @@
-// models/TempUser.js
 import mongoose from 'mongoose';
 
 const tempUserSchema = new mongoose.Schema({
