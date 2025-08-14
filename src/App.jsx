@@ -7,63 +7,51 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import { Toast } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
-import useAuthStore, { getDeviceInfo } from './store/useAuthStore'; 
+import useAuthStore, { getDeviceInfo } from './store/useAuthStore';
 import Layout from './components/Layout';
-import axios from 'axios';
+import io from 'socket.io-client';
 
 const PlaceholderPage = ({ title }) => (
-    <div style={{ color: 'white', textAlign: 'center', padding: '150px 20px', minHeight: '100vh', background: '#0f0f10' }}>
-      <h1>{title}</h1>
-      <p>This page is under construction.</p>
-    </div>
+  <div style={{ color: 'white', textAlign: 'center', padding: '150px 20px', minHeight: '100vh', background: '#0f0f10' }}>
+    <h1>{title}</h1>
+    <p>This page is under construction.</p>
+  </div>
 );
 
 function App() {
-  const { user, logout, fetchDevices } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   useEffect(() => {
     if (!user) {
       return;
     }
 
-    const checkDeviceStatus = async () => {
-      try {
-        const currentDevice = getDeviceInfo();
-        const currentDeviceId = currentDevice.deviceId;
-        const activeDevices = await fetchDevices(user._id);
-        
-        if (activeDevices && Array.isArray(activeDevices)) {
-          const isDeviceActive = activeDevices.some(device => device.id === currentDeviceId);
-          
-          if (!isDeviceActive) {
-            console.log("Device remotely logged out. Clearing session.");
-            logout();
-          }
-        }
-      } catch (error) {
-        console.error('Failed to verify device status:', error);
-      }
-    };
+    const socket = io({
+      path: '/socket.io',
+      withCredentials: true,
+    });
 
-    const updateActivity = async () => {
-      try {
-        await axios.get('/api/profile');
-      } catch (error) {
-        console.error('Failed to update activity', error);
-      }
-    };
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server with socket ID:', socket.id);
+      const deviceInfo = getDeviceInfo();
+      socket.emit('register', { userId: user._id, deviceId: deviceInfo.deviceId });
+    });
 
-    checkDeviceStatus();
-    updateActivity();
+    socket.on('force-logout', () => {
+      console.log('Force logout event received from server.');
+      logout({ redirect: true });
+    });
 
-    const deviceCheckInterval = setInterval(checkDeviceStatus, 60 * 1000);
-    const activityUpdateInterval = setInterval(updateActivity, 5 * 60 * 1000);
+    socket.on('disconnect', () => {
+      console.log('Disconnected from WebSocket server.');
+    });
 
     return () => {
-      clearInterval(deviceCheckInterval);
-      clearInterval(activityUpdateInterval);
+      console.log('Disconnecting socket...');
+      socket.disconnect();
     };
-  }, [user, fetchDevices, logout]);
+  }, [user, logout]);
+
 
   return (
     <>
@@ -73,14 +61,13 @@ function App() {
           {/* Public routes */}
           <Route path="/auth" element={user ? <Navigate to="/home" replace /> : <AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          
+
           {/* Protected routes wrapped by Layout */}
           <Route element={<Layout />}>
             <Route element={<ProtectedRoute />}>
               <Route path="/home" element={<HomePage />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile/:profileId" element={<ProfilePage />} />
-              {/* Added placeholder routes from your navbar example */}
               <Route path="/movies" element={<PlaceholderPage title="Movies" />} />
               <Route path="/tv" element={<PlaceholderPage title="TV" />} />
               <Route path="/animes" element={<PlaceholderPage title="Animes" />} />

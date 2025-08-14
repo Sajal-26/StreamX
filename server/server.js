@@ -6,6 +6,8 @@ import cors from 'cors';
 import { connectDB } from './db.js';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import { 
     loginHandler, 
     googleSignInHandler, 
@@ -24,18 +26,52 @@ import {
     updateLastActiveMiddleware,
 } from './auth.js';
 import { protect } from './authMiddleware.js'; 
+import Device from './models/Device.js';
 
 dotenv.config();
 
 connectDB();
 
 const app = express();
-
-app.use(helmet());
+const server = createServer(app);
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
     ? ['https://production-url.com']
     : ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'];
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  },
+});
+
+const connectedClients = {}; // Store connected clients: { [deviceId]: { socketId, userId } }
+
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+
+  socket.on('register', ({ userId, deviceId }) => {
+    if (userId && deviceId) {
+      connectedClients[deviceId] = { socketId: socket.id, userId };
+      console.log(`Device registered: ${deviceId} with socket ${socket.id}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+    for (const deviceId in connectedClients) {
+      if (connectedClients[deviceId].socketId === socket.id) {
+        delete connectedClients[deviceId];
+        console.log(`Device deregistered: ${deviceId}`);
+        break;
+      }
+    }
+  });
+});
+
+
+app.use(helmet());
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -74,7 +110,16 @@ app.get('/api/devices', protect, getDevicesHandler);
 
 app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', logoutHandler);
-app.post('/api/logout-device', protect, logoutDeviceHandler);
+
+app.post('/api/logout-device', protect, (req, res) => {
+  logoutDeviceHandler(req, res, (userId, deviceId) => {
+    if (connectedClients[deviceId] && connectedClients[deviceId].userId === userId) {
+      io.to(connectedClients[deviceId].socketId).emit('force-logout');
+      console.log(`'force-logout' event sent to device: ${deviceId}`);
+      delete connectedClients[deviceId];
+    }
+  });
+});
 
 app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
   res.status(200).json({  
@@ -94,6 +139,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

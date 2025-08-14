@@ -783,7 +783,7 @@ export const logoutHandler = async (req, res) => {
     return res.status(200).json({ message: 'Logged out.' });
 };
 
-export const logoutDeviceHandler = async (req, res) => {
+export const logoutDeviceHandler = async (req, res, callback) => {
     const { deviceId } = req.body;
     const userId = req.user.userId;
 
@@ -799,6 +799,7 @@ export const logoutDeviceHandler = async (req, res) => {
         }
 
         res.status(200).json({ message: 'Device logged out successfully.' });
+        if (callback) callback(userId, deviceId);
     } catch (error) {
         console.error('Error logging out device:', error);
         res.status(500).json({ message: 'Server error while logging out device.' });

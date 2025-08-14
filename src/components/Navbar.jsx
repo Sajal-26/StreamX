@@ -21,8 +21,8 @@ export default function Navbar() {
     const profileRef = useRef(null);
 
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate('/auth');
     };
     

@@ -51,19 +51,28 @@ const useAuthStore = create((set, get) => ({
         set({ user, error: null });
     },
 
-    logout: async () => {
-      const wasLoggedIn = !!get().user;
-      localStorage.removeItem('user-info');
-      set({ user: null, error: null });
-
-      if (wasLoggedIn) {
-        showSuccessToast("You have been logged out.");
-        try {
-          await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
-        } catch (err) {
-          console.error("Server logout cleanup failed:", err.response?.data?.message || err.message);
+    logout: async (options = {}) => {
+        const { redirect = false } = options;
+        const wasLoggedIn = !!get().user;
+      
+        localStorage.removeItem('user-info');
+        set({ user: null, error: null });
+      
+        if (wasLoggedIn) {
+          if (!redirect) {
+            showSuccessToast("You have been logged out.");
+          }
+      
+          try {
+            await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
+          } catch (err) {
+            console.error("Server logout cleanup failed (this is often expected if the session was already invalid):", err.response?.data?.message || err.message);
+          }
+      
+          if (redirect) {
+            window.location.assign('/auth');
+          }
         }
-      }
     },
     
     login: async ({ email, password }) => {
@@ -302,8 +311,8 @@ axios.interceptors.response.use(
         return axios(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        showErrorToast('Your session has expired. Please log in again.');
-        useAuthStore.getState().logout();
+        showErrorToast('Your session has been terminated. Please log in again.');
+        useAuthStore.getState().logout({ redirect: true });
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
