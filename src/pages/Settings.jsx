@@ -2,14 +2,50 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import styles from '../styles/Profile.module.css';
-import { User, Key, Save, Camera, X, Shield, Monitor, LogOut, Upload, ChevronLeft, Mars, Venus, Transgender } from 'lucide-react';
+import { User, Key, Save, Camera, X, Shield, Monitor, LogOut, Upload, ChevronLeft, Mars, Venus, Transgender, Trash2, AlertTriangle } from 'lucide-react';
 import ImageCropper from '../components/ImageCropper';
 import profileAvatars from '../assets/profileData.json';
 import { showErrorToast } from '../components/Toast';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import dayjs from 'dayjs';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#e50914',
+    },
+    background: {
+      paper: '#1c1c1e',
+    },
+  },
+  components: {
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& fieldset': {
+              borderColor: '#2e2e32',
+            },
+            '&:hover fieldset': {
+              borderColor: '#b91c1c',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#dc2626',
+            },
+          },
+        },
+      },
+    },
+  },
+});
 
 const Settings = () => {
     const navigate = useNavigate();
-    const { user, fetchProfile, updateProfile, logout } = useAuthStore();
+    const { user, fetchProfile, updateProfile, logout, deleteAccount } = useAuthStore();
 
     const [profileData, setProfileData] = useState(null);
     const [formData, setFormData] = useState({});
@@ -17,6 +53,7 @@ const Settings = () => {
 
     const [isAvatarModalOpen, setAvatarModalOpen] = useState(false);
     const [isProfilePicModalOpen, setProfilePicModalOpen] = useState(false);
+    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
     const [imageToCrop, setImageToCrop] = useState(null);
     const fileInputRef = useRef(null);
 
@@ -83,20 +120,39 @@ const Settings = () => {
         }
     };
 
+    const handleConfirmDelete = async () => {
+        await deleteAccount();
+        setDeleteModalOpen(false);
+        // Note: handle navigation/logout after deletion
+        // inside your useAuthStore's deleteAccount function.
+    };
+
     if (!profileData) {
-        return <div className={styles.loading}>Loading Settings...</div>;
+        return null;
     }
 
     const renderContent = () => {
         switch (activeTab) {
             case 'profile':
-                return <ProfileSettings formData={formData} setFormData={setFormData} handleChange={handleChange} handleSubmit={handleSubmit} />;
+                return <ProfileSettings 
+                            formData={formData} 
+                            setFormData={setFormData} 
+                            handleChange={handleChange} 
+                            handleSubmit={handleSubmit}
+                            onDeleteClick={() => setDeleteModalOpen(true)} 
+                        />;
             case 'security':
                 return <SecuritySettings user={profileData} />;
             case 'devices':
                 return <DeviceManager />;
             default:
-                return <ProfileSettings formData={formData} setFormData={setFormData} handleChange={handleChange} handleSubmit={handleSubmit} />;
+                return <ProfileSettings 
+                            formData={formData} 
+                            setFormData={setFormData} 
+                            handleChange={handleChange} 
+                            handleSubmit={handleSubmit}
+                            onDeleteClick={() => setDeleteModalOpen(true)}
+                        />;
         }
     };
 
@@ -126,6 +182,12 @@ const Settings = () => {
                         <img src={formData.picture} alt="Profile Preview" className={styles.modalImage} />
                     </div>
                 </div>
+            )}
+            {isDeleteModalOpen && (
+                <DeleteConfirmationModal 
+                    onClose={() => setDeleteModalOpen(false)}
+                    onConfirm={handleConfirmDelete}
+                />
             )}
 
             <div className={styles.pageWrapper}>
@@ -182,7 +244,7 @@ const Settings = () => {
     );
 };
 
-const ProfileSettings = ({ formData, setFormData, handleChange, handleSubmit }) => {
+const ProfileSettings = ({ formData, setFormData, handleChange, handleSubmit, onDeleteClick }) => {
     const [isGenderDropdownOpen, setGenderDropdownOpen] = useState(false);
     const genderDropdownRef = useRef(null);
 
@@ -232,7 +294,20 @@ const ProfileSettings = ({ formData, setFormData, handleChange, handleSubmit }) 
                 </div>
                 <div className={styles.inputGroup}>
                     <label htmlFor="dob">Date of Birth</label>
-                    <input id="dob" type="date" name="dob" value={formData.dob || ''} onChange={handleChange} />
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                        <ThemeProvider theme={darkTheme}>
+                            <DatePicker
+                                label="Date of Birth"
+                                value={formData.dob ? dayjs(formData.dob) : null}
+                                onChange={(newValue) => {
+                                    setFormData(prev => ({ ...prev, dob: newValue ? newValue.format('YYYY-MM-DD') : '' }));
+                                }}
+                                views={['year', 'month', 'day']}
+                                maxDate={dayjs()}
+                                slotProps={{ textField: { fullWidth: true, variant: 'outlined' } }}
+                            />
+                        </ThemeProvider>
+                    </LocalizationProvider>
                 </div>
                 <div className={styles.inputGroup} ref={genderDropdownRef}>
                     <label>Gender</label>
@@ -268,6 +343,15 @@ const ProfileSettings = ({ formData, setFormData, handleChange, handleSubmit }) 
                     <Save size={18} /> Save Changes
                 </button>
             </form>
+            <div className={styles.dangerZone}>
+                <h3 className={styles.dangerZoneTitle}>Danger Zone</h3>
+                <div className={styles.dangerZoneContent}>
+                    <p>Deleting your account is a permanent action and cannot be undone.</p>
+                    <button onClick={onDeleteClick} className={styles.deleteButton}>
+                        <Trash2 size={18} /> Delete My Account
+                    </button>
+                </div>
+            </div>
         </div>
     )
 };
@@ -371,7 +455,7 @@ const DeviceManager = () => {
     };
 
     if (loading) {
-        return <div className={styles.loading}>Loading devices...</div>;
+        return null;
     }
 
     return (
@@ -443,6 +527,22 @@ const AvatarGallery = ({ currentAvatar, onSelect, onClose, onUploadClick }) => {
             </div>
         </div>
     )
+};
+
+const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
+    return (
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={styles.confirmationModalContent} onClick={e => e.stopPropagation()}>
+                <AlertTriangle size={48} color="#f87171" />
+                <h3>Are you sure?</h3>
+                <p>This action is irreversible. All your data will be permanently deleted.</p>
+                <div className={styles.confirmationModalActions}>
+                    <button onClick={onClose} className={styles.cancelButton}>Cancel</button>
+                    <button onClick={onConfirm} className={styles.confirmButton}>Delete Account</button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default Settings;

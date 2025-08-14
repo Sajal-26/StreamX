@@ -172,6 +172,7 @@
     align-items: center;
     gap: 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 999;
 }
 
 .navItemMobile {
@@ -201,12 +202,17 @@
         justify-content: space-between;
     }
 
+    .searchButton {
+        font-size: 1.3em;
+    }
+
     .searchInput {
-        max-width: 42%;
+        max-width: 60%;
+        height: 2em;
     }
 
     .searchForm {
-        max-width: 50%;
+        max-width: 60%;
     }
 }
 

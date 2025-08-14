@@ -15,7 +15,7 @@ const AuthPage = () => {
     const [shake, setShake] = useState(false);
 
     const otpRefs = useRef([]);
-    const { user, login, logout, loginWithGoogle, signupRequest, verifyOtp, resendOtp, cooldown } = useAuthStore();
+    const { login, loginWithGoogle, signupRequest, verifyOtp, resendOtp, cooldown } = useAuthStore();
 
     const [formData, setFormData] = useState({
         name: "",
@@ -178,6 +178,7 @@ const AuthPage = () => {
                                 placeholder="Email"
                                 value={formData.email}
                                 disabled
+                                autoComplete="email"
                             />
                             <div
                                 className={`${styles.otpContainer} 
@@ -186,7 +187,7 @@ const AuthPage = () => {
                                 {otp.map((digit, index) => (
                                     <input
                                         key={index}
-                                        type="text"
+                                        type="number"
                                         maxLength="1"
                                         value={otp[index]}
                                         onChange={(e) => handleOtpChange(e, index)}
@@ -196,6 +197,7 @@ const AuthPage = () => {
                                         className={`${styles.otpInput}
                                             ${otpStatus === "success" ? styles.otpSuccess : ""} 
                                             ${otpStatus === "error" ? styles.otpError : ""}`}
+                                        autoComplete="one-time-code"
                                     />
                                 ))}
                             </div>
@@ -226,6 +228,7 @@ const AuthPage = () => {
                                     placeholder="Name"
                                     value={formData.name}
                                     onChange={handleChange}
+                                    autoComplete="name"
                                 />
                             )}
                             <InputWithIcon
@@ -235,6 +238,7 @@ const AuthPage = () => {
                                 placeholder="Email"
                                 value={formData.email}
                                 onChange={handleChange}
+                                autoComplete="email"
                             />
                             <InputWithIcon
                                 icon={<Lock size={18} />}
@@ -243,6 +247,7 @@ const AuthPage = () => {
                                 placeholder="Password"
                                 value={formData.password}
                                 onChange={handleChange}
+                                autoComplete={isLogin ? "current-password" : "new-password"}
                                 toggleIcon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 onToggle={togglePasswordVisibility}
                             />

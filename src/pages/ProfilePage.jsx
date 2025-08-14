@@ -43,7 +43,7 @@ const ProfilePage = () => {
     };
 
     if (!profileData) {
-        return <div className={styles.loading}>Loading Profile...</div>;
+        return null;
     }
 
     const isOwnProfile = currentUser?._id === profileData._id;

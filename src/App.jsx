@@ -9,6 +9,7 @@ import { Toast } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import useAuthStore, { getDeviceInfo } from './store/useAuthStore';
 import Layout from './components/Layout';
+import Loader from './components/Loader'; // Import the Loader
 import io from 'socket.io-client';
 
 const PlaceholderPage = ({ title }) => (
@@ -19,7 +20,7 @@ const PlaceholderPage = ({ title }) => (
 );
 
 function App() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoading } = useAuthStore(); // Get isLoading state
 
   useEffect(() => {
     if (!user) {
@@ -56,6 +57,7 @@ function App() {
   return (
     <>
       <Toast />
+      {isLoading && <Loader />}
       <Router>
         <Routes>
           {/* Public routes */}

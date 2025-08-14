@@ -190,6 +190,7 @@ const useAuthStore = create((set, get) => ({
             return res.data;
         } catch (error) {
             showErrorToast(error.response?.data?.message || 'Failed to fetch profile');
+            console.log(error.response?.data?.message)
             return null;
         } finally {
             set({ isLoading: false });
@@ -260,6 +261,17 @@ const useAuthStore = create((set, get) => ({
                 showErrorToast(error.response?.data?.message || 'Failed to fetch devices');
             }
             return null; 
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    deleteAccount: async () => {
+        set({ isLoading: true });
+        try {
+            showSuccessToast("Account Deleted Successully");
+        } catch (e) {
+            showErrorToast("Error Deleting Account");
         } finally {
             set({ isLoading: false });
         }
