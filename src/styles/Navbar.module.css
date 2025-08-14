@@ -85,7 +85,6 @@
 
 .profileContainer {
     position: relative;
-    min-width: 90px;
     display: flex;
     justify-content: space-between;
 
@@ -193,7 +192,7 @@
 
     .profileContainer {
         display: flex;
-
+        min-width: 90px;
     }
 
     .right {
@@ -217,7 +216,13 @@
     }
 
     .right {
-        gap: 1.5rem;
+        gap: 1rem;
+    }
+
+    .profileContainer {
+        flex-grow: 1;
+        justify-content: space-between;
+        gap: 1rem;
     }
 }
 

@@ -33,8 +33,18 @@ const app = express();
 
 app.use(helmet());
 
+const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://production-url.com']
+    : ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 

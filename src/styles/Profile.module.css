@@ -21,7 +21,7 @@
   align-items: center;
   justify-content: flex-start;
   padding: 2rem 1rem;
-  padding-top: 120px;
+  padding-top: 110px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--color-light-text);
   box-sizing: border-box;
@@ -519,8 +519,7 @@
 
 /* 10. NEW STYLES FOR PROFILE PAGE */
 .profilePageContainer {
-  width: 100%;
-  max-width: 900px;
+  width: 90%;
   background-color: var(--color-bg);
   border-radius: 1rem;
   border: 1px solid var(--color-border);
@@ -649,8 +648,7 @@
 }
 
 .activityContainer {
-  width: 100%;
-  max-width: 900px;
+  width: 90%;
   padding: 1.5rem;
   text-align: center;
   background-color: var(--color-bg);
