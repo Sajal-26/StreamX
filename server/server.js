@@ -24,9 +24,9 @@ import {
     logoutHandler,
     logoutDeviceHandler,
     updateLastActiveMiddleware,
+    deleteAccountHandler,
 } from './auth.js';
 import { protect } from './authMiddleware.js'; 
-import Device from './models/Device.js';
 
 dotenv.config();
 
@@ -46,7 +46,7 @@ const io = new Server(server, {
   },
 });
 
-const connectedClients = {}; // Store connected clients: { [deviceId]: { socketId, userId } }
+const connectedClients = {};
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -107,6 +107,7 @@ app.post('/api/change-password', protect, changePasswordHandler);
 app.post('/api/forgot-password', forgotPasswordHandler);
 app.post('/api/reset-password', resetPasswordHandler);
 app.get('/api/devices', protect, getDevicesHandler);
+app.delete('/api/profile/:id', protect, deleteAccountHandler);
 
 app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', logoutHandler);

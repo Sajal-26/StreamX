@@ -121,10 +121,10 @@ const Settings = () => {
     };
 
     const handleConfirmDelete = async () => {
-        await deleteAccount();
-        setDeleteModalOpen(false);
-        // Note: handle navigation/logout after deletion
-        // inside your useAuthStore's deleteAccount function.
+        const success = await deleteAccount();
+        if (success) {
+            setDeleteModalOpen(false);
+        }
     };
 
     if (!profileData) {

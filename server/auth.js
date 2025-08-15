@@ -124,6 +124,40 @@ const sendPasswordResetEmail = async (user, resetToken, origin) => {
     }
 };
 
+const sendAccountDeletionEmail = async (user) => {
+    try {
+        const mailOptions = {
+            from: `"StreamX Support" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: 'Your StreamX Account Has Been Deleted',
+            html: `<div style="background-color: #000000; color: #ffffff; font-family: sans-serif; padding: 20px;">
+                <div style="max-width: 600px; margin: auto; background: #111827; border-radius: 1rem; border: 1px solid #1f2937; overflow: hidden;">
+                    <div style="padding: 20px; text-align: center;">
+                        <h1 style="color: #EF4444; margin: 0;">Account Deletion Confirmation</h1>
+                    </div>
+                    <div style="padding: 20px 30px; background-color: #1f2937;">
+                        <h2 style="color: #ffffff; margin-top: 0;">Your Account Has Been Deleted</h2>
+                        <p style="color: #d1d5db;">Hello ${user.name},</p>
+                        <p style="color: #d1d5db;">This is to confirm that your StreamX account has been permanently deleted as per your request. All of your data has been removed from our servers.</p>
+                        <p style="color: #d1d5db;">We're sorry to see you go. If you change your mind, you can always sign up for a new account.</p>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: #DC2626; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 0.5rem; font-weight: bold;">Visit StreamX</a>
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; font-size: 0.8rem; color: #6b7280; background-color: #111827;">
+                        <p>This is an automated message. Please do not reply.</p>
+                        <p>&copy; StreamX. All rights reserved.</p>
+                    </div>
+                </div>
+            </div>`
+        };
+
+        await transporter.sendMail(mailOptions);
+    } catch (error) {
+        console.error(`Failed to send account deletion email to ${user.email}:`, error);
+    }
+};
+
 const createAccessToken = (user) => {
     return jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
@@ -803,5 +837,32 @@ export const logoutDeviceHandler = async (req, res, callback) => {
     } catch (error) {
         console.error('Error logging out device:', error);
         res.status(500).json({ message: 'Server error while logging out device.' });
+    }
+};
+
+export const deleteAccountHandler = async (req, res) => {
+    const userId = req.user.userId;
+
+    if (!userId) {
+        return res.status(400).json({ message: 'User ID not found in token.' });
+    }
+
+    try {
+        const user = await User.findByIdAndDelete(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        await Device.deleteMany({ userId: userId });
+        sendAccountDeletionEmail(user);
+
+        res.clearCookie('accessToken');
+        res.clearCookie('refreshToken');
+
+        return res.status(200).json({ message: 'Account and all associated data have been successfully deleted.' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        return res.status(500).json({ message: 'Server error during account deletion.' });
     }
 };

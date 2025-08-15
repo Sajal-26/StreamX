@@ -269,9 +269,14 @@ const useAuthStore = create((set, get) => ({
     deleteAccount: async () => {
         set({ isLoading: true });
         try {
+            const userId = get().user._id;
+            const res = await axios.delete(`${API_BASE}/profile/${userId}`, { withCredentials: true });
             showSuccessToast("Account Deleted Successully");
+            get().logout({ redirect: true });
+            return true;
         } catch (e) {
-            showErrorToast("Error Deleting Account");
+            showErrorToast(e.response?.data?.message || "Error Deleting Account");
+            return false;
         } finally {
             set({ isLoading: false });
         }
