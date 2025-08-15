@@ -31,6 +31,16 @@ function extractClientIP(req) {
     return req.socket?.remoteAddress || 'unknown';
 }
 
+const normalizeEmail = (email) => {
+    if (!email || !email.includes('@')) {
+        return email;
+    }
+    const localPart = email.split('@')[0].replace(/\./g, '');
+    const domain = email.split('@')[1];
+    return `${localPart}@${domain}`.toLowerCase();
+};
+
+
 const sendLoginNotificationEmail = async (user, ip) => {
     try {
         const geo = geoip.lookup(ip);
@@ -218,14 +228,16 @@ export async function signupRequestHandler(req, res) {
         return res.status(400).json({ message: "Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character." });
     }
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = normalizeEmail(email);
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
         return res.status(409).json({ message: "Email already in use." });
     }
 
-    const existingTemp = await TempUser.findOne({ email });
+    const existingTemp = await TempUser.findOne({ email: normalizedEmail });
     if (existingTemp) {
-        await TempUser.deleteOne({ email });
+        await TempUser.deleteOne({ email: normalizedEmail });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -235,7 +247,7 @@ export async function signupRequestHandler(req, res) {
 
     const tempUser = new TempUser({
         name: name,
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         otp,
         otpExpiresAt,
@@ -246,7 +258,7 @@ export async function signupRequestHandler(req, res) {
 
     await transporter.sendMail({
         from: `"StreamX Verification" <${process.env.EMAIL_USER}>`,
-        to: email,
+        to: email, // Send to original email for user's convenience
         subject: "Your OTP Code for StreamX",
         html: `
         <div style="background-color: #000; padding: 20px; color: #fff;">
@@ -267,7 +279,8 @@ export async function verifyOtpHandler(req, res) {
 
     if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required.' });
 
-    const tempUser = await TempUser.findOne({ email });
+    const normalizedEmail = normalizeEmail(email);
+    const tempUser = await TempUser.findOne({ email: normalizedEmail });
 
     if (!tempUser) {
         return res.status(400).json({ message: "Invalid or expired OTP." });
@@ -276,14 +289,14 @@ export async function verifyOtpHandler(req, res) {
     const now = new Date();
     if (!tempUser.otpExpiresAt || tempUser.otp !== otp || tempUser.otpExpiresAt < now) {
         if (tempUser.otpExpiresAt && tempUser.otpExpiresAt < now) {
-            await TempUser.deleteOne({ email });
+            await TempUser.deleteOne({ email: normalizedEmail });
         }
         return res.status(400).json({ message: "Invalid or expired OTP." });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-        await TempUser.deleteOne({ email });
+        await TempUser.deleteOne({ email: normalizedEmail });
         return res.status(409).json({ message: "User already exists." });
     }
 
@@ -294,7 +307,7 @@ export async function verifyOtpHandler(req, res) {
     });
 
     await newUser.save();
-    await TempUser.deleteOne({ email });
+    await TempUser.deleteOne({ email: normalizedEmail });
 
     const accessToken = createAccessToken(newUser);
     const refreshToken = createRefreshToken(newUser);
@@ -341,8 +354,9 @@ export async function resendOtpHandler(req, res) {
     if (!email) {
         return res.status(400).json({ message: "Email is required." });
     }
-
-    const tempUser = await TempUser.findOne({ email });
+    
+    const normalizedEmail = normalizeEmail(email);
+    const tempUser = await TempUser.findOne({ email: normalizedEmail });
     if (!tempUser) {
         return res.status(404).json({ message: "No pending signup found for this email." });
     }
@@ -387,9 +401,7 @@ export async function loginHandler(req, res) {
             return res.status(400).json({ message: 'Email and password are required.' });
         }
 
-        const localPart = email.split('@')[0].replace(/\./g, '');
-        const domain = email.split('@')[1];
-        const normalizedEmail = `${localPart}@${domain}`.toLowerCase();
+        const normalizedEmail = normalizeEmail(email);
         
         const user = await User.findOne({ email: normalizedEmail });
 
@@ -475,14 +487,15 @@ export async function googleSignInHandler(req, res) {
         });
 
         const payload = ticket.getPayload();
+        const normalizedEmail = normalizeEmail(payload.email);
 
         const updatedUser = await User.findOneAndUpdate(
-            { email: payload.email },
+            { email: normalizedEmail },
             {
                 $setOnInsert: {
                     name: payload.name,
                     picture: payload.picture,
-                    email: payload.email,
+                    email: normalizedEmail,
                     password: null
                 }
             },
@@ -702,7 +715,8 @@ export const forgotPasswordHandler = async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ email });
+        const normalizedEmail = normalizeEmail(email);
+        const user = await User.findOne({ email: normalizedEmail });
         if (user) {
             const resetToken = crypto.randomBytes(32).toString('hex');
             const resetHash = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -725,7 +739,8 @@ export const resetPasswordHandler = async (req, res) => {
     if (!email || !token || !newPassword) return res.status(400).json({ message: 'Email, token and new password required.' });
 
     try {
-        const user = await User.findOne({ email });
+        const normalizedEmail = normalizeEmail(email);
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user || !user.passwordResetTokenHash || !user.passwordResetExpires) {
             return res.status(400).json({ message: 'Invalid or expired reset token.' });
         }

@@ -1,16 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useState, createContext } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import Settings from './pages/Settings';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProfilePage from './pages/ProfilePage';
+import ServerDownPage from './pages/ServerDownPage';
 import { Toast } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import useAuthStore, { getDeviceInfo } from './store/useAuthStore';
 import Layout from './components/Layout';
-import Loader from './components/Loader'; // Import the Loader
+import Loader from './components/Loader';
 import io from 'socket.io-client';
+
+export const SocketContext = createContext(null);
 
 const PlaceholderPage = ({ title }) => (
   <div style={{ color: 'white', textAlign: 'center', padding: '150px 20px', minHeight: '100vh', background: '#0f0f10' }}>
@@ -20,42 +24,75 @@ const PlaceholderPage = ({ title }) => (
 );
 
 function App() {
-  const { user, logout, isLoading } = useAuthStore(); // Get isLoading state
+  const { user, logout, isLoading } = useAuthStore();
+  const [isServerOnline, setIsServerOnline] = useState(true);
+  const [isCheckingServer, setIsCheckingServer] = useState(true);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    if (!user) {
+    const checkServerStatus = async () => {
+      try {
+        await axios.get('/api/health');
+        setIsServerOnline(true);
+      } catch (error) {
+        console.error("Server health check failed:", error);
+        setIsServerOnline(false);
+      } finally {
+        setIsCheckingServer(false);
+      }
+    };
+    checkServerStatus();
+  }, []);
+
+  useEffect(() => {
+    if (!user || !isServerOnline) {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
       return;
     }
 
-    const socket = io({
+    const socketUrl = import.meta.env.MODE === 'production'
+      ? undefined
+      : import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+    const newSocket = io(socketUrl, {
       path: '/socket.io',
       withCredentials: true,
     });
+    setSocket(newSocket);
 
-    socket.on('connect', () => {
-      console.log('Connected to WebSocket server with socket ID:', socket.id);
-      const deviceInfo = getDeviceInfo();
-      socket.emit('register', { userId: user._id, deviceId: deviceInfo.deviceId });
+    newSocket.on('connect', () => {
+      console.log('Connected to WebSocket server with socket ID:', newSocket.id);
+      newSocket.emit('register', { userId: user._id });
     });
 
-    socket.on('force-logout', () => {
-      console.log('Force logout event received from server.');
+    newSocket.on('force-logout', (data) => {
+      console.log('Force logout event received from server:', data);
       logout({ redirect: true });
     });
 
-    socket.on('disconnect', () => {
+    newSocket.on('disconnect', () => {
       console.log('Disconnected from WebSocket server.');
     });
 
     return () => {
       console.log('Disconnecting socket...');
-      socket.disconnect();
+      newSocket.disconnect();
     };
-  }, [user, logout]);
+  }, [user, logout, isServerOnline]);
 
+  if (isCheckingServer) {
+    return <Loader />;
+  }
+
+  if (!isServerOnline) {
+    return <ServerDownPage />;
+  }
 
   return (
-    <>
+    <SocketContext.Provider value={socket}>
       <Toast />
       {isLoading && <Loader />}
       <Router>
@@ -83,7 +120,7 @@ function App() {
           <Route path="*" element={<Navigate to={user ? "/home" : "/auth"} replace />} />
         </Routes>
       </Router>
-    </>
+    </SocketContext.Provider>
   );
 }
 

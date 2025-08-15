@@ -36,7 +36,7 @@ const app = express();
 const server = createServer(app);
 
 const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? ['https://production-url.com']
+    ? [process.env.FRONTEND_URL]
     : ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'];
 
 const io = new Server(server, {
@@ -46,25 +46,40 @@ const io = new Server(server, {
   },
 });
 
-const connectedClients = {};
+const userSockets = new Map();
+
+const broadcastToUser = (userId, event, data) => {
+    const userConnections = userSockets.get(userId.toString());
+    if (userConnections) {
+        userConnections.forEach(socketId => {
+            io.to(socketId).emit(event, data);
+        });
+    }
+};
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  socket.on('register', ({ userId, deviceId }) => {
-    if (userId && deviceId) {
-      connectedClients[deviceId] = { socketId: socket.id, userId };
-      console.log(`Device registered: ${deviceId} with socket ${socket.id}`);
+  socket.on('register', ({ userId }) => {
+    if (userId) {
+      if (!userSockets.has(userId)) {
+        userSockets.set(userId, new Set());
+      }
+      userSockets.get(userId).add(socket.id);
+      socket.userId = userId; // Associate userId with the socket
+      console.log(`User ${userId} registered socket ${socket.id}`);
     }
   });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    for (const deviceId in connectedClients) {
-      if (connectedClients[deviceId].socketId === socket.id) {
-        delete connectedClients[deviceId];
-        console.log(`Device deregistered: ${deviceId}`);
-        break;
+    if (socket.userId) {
+      const userConnections = userSockets.get(socket.userId);
+      if (userConnections) {
+        userConnections.delete(socket.id);
+        if (userConnections.size === 0) {
+          userSockets.delete(socket.userId);
+        }
       }
     }
   });
@@ -95,10 +110,12 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ message: 'Server is up and running successfully!' });
 });
 
-app.post('/api/login', loginHandler);
-app.post('/api/auth-google', googleSignInHandler);
+const createHandler = (handler) => (req, res) => handler(req, res, { broadcastToUser });
+
+app.post('/api/login', createHandler(loginHandler));
+app.post('/api/auth-google', createHandler(googleSignInHandler));
 app.post('/api/signup-request', signupRequestHandler);
-app.post('/api/verify-otp', verifyOtpHandler);
+app.post('/api/verify-otp', createHandler(verifyOtpHandler));
 app.post('/api/resend-otp', resendOtpHandler);
 
 app.get('/api/profile/:id', protect, getUserProfile);
@@ -107,19 +124,13 @@ app.post('/api/change-password', protect, changePasswordHandler);
 app.post('/api/forgot-password', forgotPasswordHandler);
 app.post('/api/reset-password', resetPasswordHandler);
 app.get('/api/devices', protect, getDevicesHandler);
-app.delete('/api/profile/:id', protect, deleteAccountHandler);
+app.delete('/api/profile/:id', protect, createHandler(deleteAccountHandler));
 
 app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', logoutHandler);
 
 app.post('/api/logout-device', protect, (req, res) => {
-  logoutDeviceHandler(req, res, (userId, deviceId) => {
-    if (connectedClients[deviceId] && connectedClients[deviceId].userId === userId) {
-      io.to(connectedClients[deviceId].socketId).emit('force-logout');
-      console.log(`'force-logout' event sent to device: ${deviceId}`);
-      delete connectedClients[deviceId];
-    }
-  });
+  logoutDeviceHandler(req, res, { broadcastToUser });
 });
 
 app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {

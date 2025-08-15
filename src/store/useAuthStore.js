@@ -4,7 +4,8 @@ import { showSuccessToast, showErrorToast } from '../components/Toast';
 import Cookies from 'js-cookie';
 import { UAParser } from "ua-parser-js";
 
-const API_BASE = "/api";
+// const API_BASE = "/api";
+const API_BASE = 'http://localhost:3000/api';
 
 const getBrowserInstanceId = () => {
     let instanceId = localStorage.getItem('browserInstanceId');

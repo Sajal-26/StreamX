@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import styles from '../styles/Profile.module.css';
@@ -11,6 +11,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
+import { SocketContext } from '../App'; // Import the context
 
 const darkTheme = createTheme({
   palette: {
@@ -427,31 +428,42 @@ const DeviceManager = () => {
     const { fetchDevices, logoutDevice, user } = useAuthStore();
     const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(true);
+    const socket = useContext(SocketContext);
+
+    const loadDevices = async () => {
+        if (!user?._id) return;
+        setLoading(true);
+        try {
+            const data = await fetchDevices(user._id);
+            if (data) {
+                setDevices(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch devices", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const loadDevices = async () => {
-            if (!user?._id) return;
-            setLoading(true);
-            try {
-                const data = await fetchDevices(user._id);
-                if (data) {
-                    setDevices(data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch devices", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadDevices();
-    }, [fetchDevices, user?._id]);
+
+        if (socket) {
+            const handleDevicesUpdate = () => {
+                console.log('Received devices-updated event, refetching devices...');
+                loadDevices();
+            };
+
+            socket.on('devices-updated', handleDevicesUpdate);
+
+            return () => {
+                socket.off('devices-updated', handleDevicesUpdate);
+            };
+        }
+    }, [socket, user?._id]);
 
     const handleLogoutDevice = async (deviceId) => {
-        const success = await logoutDevice(deviceId);
-        if (success) {
-            setDevices(prev => prev.filter(d => d.id !== deviceId));
-        }
+        await logoutDevice(deviceId);
     };
 
     if (loading) {

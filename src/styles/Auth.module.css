@@ -57,6 +57,17 @@ html {
     border: 1px solid #374151 !important;
 }
 
+/* Hide arrows from number input */
+.otpInput::-webkit-outer-spin-button,
+.otpInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.otpInput[type=number] {
+  -moz-appearance: textfield;
+}
+
 .container {
     min-height: 100vh;
     background-color: #000;
