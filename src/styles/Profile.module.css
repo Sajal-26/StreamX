@@ -852,15 +852,100 @@
   background-color: var(--color-highlight-hover);
 }
 
+.cropperModalContent {
+  background: rgba(13, 13, 13, 0.9);
+  color: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #2e2e32;
+  width: 90%;
+  max-width: 500px;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.cropContainer {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.cropContainer img {
+  max-height: 65vh;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.cropperActions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cropButton {
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.cropButton:hover {
+  background-color: #b91c1c;
+}
+
+.cancelCropButton {
+  background-color: #2d2d30;
+}
+
+.cancelCropButton:hover {
+  background-color: #4b5563;
+}
 
 /* 12. Responsive Styles */
 @media (max-width: 768px) {
-  .container {
-    min-height: 95vh;
+  .pageWrapper {
+    padding: 1rem 0;
+    padding-top: 80px;
+  }
+
+  .container,
+  .profilePageContainer,
+  .activityContainer {
+    width: 100vw;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    margin: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pageWrapper {
+    padding: 0;
+  }
+
+  .sidebar {
+    margin-top: 90px;
   }
 
   .content {
-    padding: 1.5rem;
+    height: 100vh;
   }
 
   .nav {

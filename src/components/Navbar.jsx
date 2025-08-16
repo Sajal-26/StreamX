@@ -39,6 +39,16 @@ export default function Navbar() {
         setIsSearchActive(prev => !prev);
     };
 
+    const toggleMenu = () => {
+        if (isProfileOpen) setProfileOpen(false);
+        setMenuOpen(!isMenuOpen);
+    };
+
+    const toggleProfile = () => {
+        if (isMenuOpen) setMenuOpen(false);
+        setProfileOpen(!isProfileOpen);
+    };
+
     useEffect(() => {
         if (isSearchActive && searchInputRef.current) {
             searchInputRef.current.focus();
@@ -77,9 +87,23 @@ export default function Navbar() {
     const navLinks = ['Home', 'Movies', 'TV', 'Animes', 'Sports'];
 
     const mobileMenuVariants = {
-        hidden: { opacity: 0, height: 0 },
-        visible: { opacity: 1, height: 'auto', transition: { duration: 0.3, ease: "easeOut" } },
-        exit: { opacity: 0, height: 0, transition: { duration: 0.2, ease: "easeIn" } }
+        hidden: { opacity: 0, y: -20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.3,
+                ease: "easeOut",
+                when: "beforeChildren",
+                staggerChildren: 0.05
+            }
+        },
+        exit: { opacity: 0, y: -20, transition: { duration: 0.2, ease: "easeIn" } }
+    };
+    
+    const mobileLinkVariants = {
+        hidden: { opacity: 0, y: -10 },
+        visible: { opacity: 1, y: 0 },
     };
 
     const profileMenuVariants = {
@@ -130,7 +154,7 @@ export default function Navbar() {
                         </form>
 
                         <div className={styles.profileContainer} ref={profileRef}>
-                             <button onClick={() => setProfileOpen(!isProfileOpen)} className={styles.avatarButton}>
+                             <button onClick={toggleProfile} className={styles.avatarButton}>
                                 {user ? (
                                     <img
                                         src={user.picture || `https://occ-0-4995-2164.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABW7Wui3ZqHqBvl3R__TmY0sDZF-xBxJJinhVWRwu7OmYkF2bdwH4nqfnyT3YQ-JshQvap33bDbRLACSoadpKwbIQIBktdtHjxw.png?r=201`}
@@ -156,7 +180,7 @@ export default function Navbar() {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                            <button className={styles.menuToggle} onClick={() => setMenuOpen(!isMenuOpen)}>
+                            <button className={styles.menuToggle} onClick={toggleMenu}>
                                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                             </button>
                         </div>
@@ -176,14 +200,15 @@ export default function Navbar() {
                         {navLinks.map((label) => {
                              const path = label === 'Home' ? '/home' : `/${label.toLowerCase().replace(/\s/g, '')}`;
                              return (
-                                <NavLink
-                                    key={label}
-                                    to={path}
-                                    className={({ isActive }) => `${styles.navItemMobile} ${isActive ? styles.active : ''}`}
-                                    onClick={() => setMenuOpen(false)}
-                                >
-                                    {label}
-                                </NavLink>
+                                <motion.div key={label} variants={mobileLinkVariants}>
+                                    <NavLink
+                                        to={path}
+                                        className={({ isActive }) => `${styles.navItemMobile} ${isActive ? styles.active : ''}`}
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        {label}
+                                    </NavLink>
+                                </motion.div>
                             );
                         })}
                     </motion.nav>

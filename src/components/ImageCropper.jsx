@@ -4,7 +4,8 @@ import 'react-image-crop/dist/ReactCrop.css';
 import styles from '../styles/Profile.module.css';
 import { Crop, X } from 'lucide-react';
 
-function getCroppedImg(image, crop, fileName) {
+// A function to get the cropped image data
+function getCroppedImg(image, crop) {
   const canvas = document.createElement('canvas');
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
@@ -29,12 +30,12 @@ function getCroppedImg(image, crop, fileName) {
   });
 }
 
-
 const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
 
+  // Set an initial crop area when the image loads
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
     const initialCrop = centerCrop(
@@ -43,7 +44,7 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
           unit: '%',
           width: 90,
         },
-        1,
+        1, // Aspect ratio 1:1
         width,
         height
       ),
@@ -53,12 +54,12 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
     setCrop(initialCrop);
   }
 
+  // Handle the crop and save action
   const handleCrop = async () => {
     if (completedCrop?.width && completedCrop?.height && imgRef.current) {
       const croppedImageUrl = await getCroppedImg(
         imgRef.current,
-        completedCrop,
-        'newFile.jpeg'
+        completedCrop
       );
       onCropComplete(croppedImageUrl);
     }
@@ -79,12 +80,17 @@ const ImageCropper = ({ imageSrc, onCropComplete, onCancel }) => {
             aspect={1}
             circularCrop
           >
-            <img ref={imgRef} alt="Crop me" src={imageSrc} onLoad={onImageLoad} />
+            <img ref={imgRef} alt="Crop me" src={imageSrc} onLoad={onImageLoad} style={{maxHeight: '70vh'}} />
           </ReactCrop>
         </div>
-        <button onClick={handleCrop} className={styles.cropButton}>
-          <Crop size={18} /> Crop and Save
-        </button>
+        <div className={styles.cropperActions}>
+            <button onClick={onCancel} className={`${styles.cropButton} ${styles.cancelCropButton}`}>
+                Cancel
+            </button>
+            <button onClick={handleCrop} className={styles.cropButton}>
+                <Crop size={18} /> Crop and Save
+            </button>
+        </div>
       </div>
     </div>
   );
