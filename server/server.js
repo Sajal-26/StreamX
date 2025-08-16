@@ -48,11 +48,21 @@ const io = new Server(server, {
 
 const userSockets = new Map();
 
+const sendToDevice = (userId, deviceId, event, data) => {
+    const userConnections = userSockets.get(userId.toString());
+    if (userConnections) {
+        const targetDevice = userConnections.find(conn => conn.deviceId === deviceId);
+        if (targetDevice) {
+            io.to(targetDevice.socketId).emit(event, data);
+        }
+    }
+};
+
 const broadcastToUser = (userId, event, data) => {
     const userConnections = userSockets.get(userId.toString());
     if (userConnections) {
-        userConnections.forEach(socketId => {
-            io.to(socketId).emit(event, data);
+        userConnections.forEach(conn => {
+            io.to(conn.socketId).emit(event, data);
         });
     }
 };
@@ -60,14 +70,19 @@ const broadcastToUser = (userId, event, data) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  socket.on('register', ({ userId }) => {
-    if (userId) {
+  socket.on('register', ({ userId, deviceId }) => {
+    if (userId && deviceId) {
       if (!userSockets.has(userId)) {
-        userSockets.set(userId, new Set());
+        userSockets.set(userId, []);
       }
-      userSockets.get(userId).add(socket.id);
+      const existingConnections = userSockets.get(userId);
+      const updatedConnections = existingConnections.filter(conn => conn.deviceId !== deviceId);
+      updatedConnections.push({ socketId: socket.id, deviceId });
+      userSockets.set(userId, updatedConnections);
+      
       socket.userId = userId;
-      console.log(`User ${userId} registered socket ${socket.id}`);
+      socket.deviceId = deviceId;
+      console.log(`User ${userId} with device ${deviceId} registered socket ${socket.id}`);
     }
   });
 
@@ -76,9 +91,11 @@ io.on('connection', (socket) => {
     if (socket.userId) {
       const userConnections = userSockets.get(socket.userId);
       if (userConnections) {
-        userConnections.delete(socket.id);
-        if (userConnections.size === 0) {
+        const updatedConnections = userConnections.filter(conn => conn.socketId !== socket.id);
+        if (updatedConnections.length === 0) {
           userSockets.delete(socket.userId);
+        } else {
+          userSockets.set(socket.userId, updatedConnections);
         }
       }
     }
@@ -88,19 +105,6 @@ io.on('connection', (socket) => {
 
 app.use(helmet());
 
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     console.log("INCOMING ORIGIN:", origin);
-//     console.log("ALLOWED ORIGINS:", allowedOrigins);
-
-//     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true,
-// }));
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
@@ -117,7 +121,7 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ message: 'Server is up and running successfully!' });
 });
 
-const createHandler = (handler) => (req, res) => handler(req, res, { broadcastToUser });
+const createHandler = (handler) => (req, res) => handler(req, res, { broadcastToUser, sendToDevice });
 
 app.post('/api/login', createHandler(loginHandler));
 app.post('/api/auth-google', createHandler(googleSignInHandler));
@@ -137,7 +141,7 @@ app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', logoutHandler);
 
 app.post('/api/logout-device', protect, (req, res) => {
-  logoutDeviceHandler(req, res, { broadcastToUser });
+  logoutDeviceHandler(req, res, { sendToDevice });
 });
 
 app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
