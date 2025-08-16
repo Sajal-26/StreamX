@@ -48,16 +48,6 @@ const io = new Server(server, {
 
 const userSockets = new Map();
 
-const sendToDevice = (userId, deviceId, event, data) => {
-    const userConnections = userSockets.get(userId.toString());
-    if (userConnections) {
-        const targetDevice = userConnections.find(conn => conn.deviceId === deviceId);
-        if (targetDevice) {
-            io.to(targetDevice.socketId).emit(event, data);
-        }
-    }
-};
-
 const broadcastToUser = (userId, event, data) => {
     const userConnections = userSockets.get(userId.toString());
     if (userConnections) {
@@ -70,14 +60,14 @@ const broadcastToUser = (userId, event, data) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  socket.on('register', ({ userId, deviceId }) => {
-    if (userId && deviceId) {
+  socket.on('register', ({ userId }) => {
+    if (userId) {
       if (!userSockets.has(userId)) {
-        userSockets.set(userId, []);
+        userSockets.set(userId, new Set());
       }
-      userSockets.get(userId).push({ socketId: socket.id, deviceId });
-      socket.userId = userId;
-      console.log(`User ${userId} registered socket ${socket.id} for device ${deviceId}`);
+      userSockets.get(userId).add(socket.id);
+      socket.userId = userId; 
+      console.log(`User ${userId} registered socket ${socket.id}`);
     }
   });
 
@@ -102,6 +92,9 @@ app.use(cors({
   credentials: true,
 }));
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
@@ -110,7 +103,7 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ message: 'Server is up and running successfully!' });
 });
 
-const createHandler = (handler) => (req, res) => handler(req, res, { broadcastToUser, sendToDevice });
+const createHandler = (handler) => (req, res) => handler(req, res, { broadcastToUser });
 
 app.post('/api/login', createHandler(loginHandler));
 app.post('/api/auth-google', createHandler(googleSignInHandler));
@@ -130,7 +123,7 @@ app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', logoutHandler);
 
 app.post('/api/logout-device', protect, (req, res) => {
-  logoutDeviceHandler(req, res, { sendToDevice });
+  logoutDeviceHandler(req, res, { broadcastToUser });
 });
 
 app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
@@ -139,6 +132,8 @@ app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
     user: req.user
   });
 });
+
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -150,7 +145,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
-
-export default app;

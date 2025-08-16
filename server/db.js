@@ -9,30 +9,15 @@ if (!uri) {
     throw new Error('MongoDB connection string is missing!');
 }
 
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
 export const connectDB = async () => {
-    if (cached.conn) {
-        return cached.conn;
-    }
-
-    if (!cached.promise) {
-        const opts = {
-            bufferCommands: false,
-        };
-
-        cached.promise = mongoose.connect(uri, opts).then((mongoose) => {
-            console.log('MongoDB connected');
-            return mongoose;
-        }).catch(err => {
-            console.error('MongoDB connection error:', err);
-            throw err;
+    try {
+        await mongoose.connect(uri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
         });
+        console.log('MongoDB connected');
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        process.exit(1);
     }
-    cached.conn = await cached.promise;
-    return cached.conn;
 };
