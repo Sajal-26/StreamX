@@ -2,15 +2,13 @@ import { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import styles from '../styles/Profile.module.css';
-import { User, Key, Save, Camera, X, Shield, LogOut, Upload, ChevronLeft, Mars, Venus, Transgender, Trash2, AlertTriangle } from 'lucide-react';
-import { 
-    Monitor, 
-    Apple, 
-    Laptop, 
+import { User, Key, Save, Camera, X, Shield, LogOut, Upload, ChevronLeft, Mars, Venus, Transgender, Trash2, AlertTriangle, Phone } from 'lucide-react';
+import {
+    Monitor,
+    Smartphone,
+    Laptop,
     Tv,
     Globe,
-    Wind,
-    Bot
 } from 'lucide-react';
 import ImageCropper from '../components/ImageCropper';
 import profileAvatars from '../assets/profileData.json';
@@ -23,34 +21,34 @@ import dayjs from 'dayjs';
 import { SocketContext } from '../App';
 
 const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#e50914',
-    },
-    background: {
-      paper: '#1c1c1e',
-    },
-  },
-  components: {
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            '& fieldset': {
-              borderColor: '#2e2e32',
-            },
-            '&:hover fieldset': {
-              borderColor: '#b91c1c',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#dc2626',
-            },
-          },
+    palette: {
+        mode: 'dark',
+        primary: {
+            main: '#e50914',
         },
-      },
+        background: {
+            paper: '#1c1c1e',
+        },
     },
-  },
+    components: {
+        MuiTextField: {
+            styleOverrides: {
+                root: {
+                    '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                            borderColor: '#2e2e32',
+                        },
+                        '&:hover fieldset': {
+                            borderColor: '#b91c1c',
+                        },
+                        '&.Mui-focused fieldset': {
+                            borderColor: '#dc2626',
+                        },
+                    },
+                },
+            },
+        },
+    },
 });
 
 const Settings = () => {
@@ -144,25 +142,25 @@ const Settings = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'profile':
-                return <ProfileSettings 
-                            formData={formData} 
-                            setFormData={setFormData} 
-                            handleChange={handleChange} 
-                            handleSubmit={handleSubmit}
-                            onDeleteClick={() => setDeleteModalOpen(true)} 
-                        />;
+                return <ProfileSettings
+                    formData={formData}
+                    setFormData={setFormData}
+                    handleChange={handleChange}
+                    handleSubmit={handleSubmit}
+                    onDeleteClick={() => setDeleteModalOpen(true)}
+                />;
             case 'security':
                 return <SecuritySettings user={profileData} />;
             case 'devices':
                 return <DeviceManager />;
             default:
-                return <ProfileSettings 
-                            formData={formData} 
-                            setFormData={setFormData} 
-                            handleChange={handleChange} 
-                            handleSubmit={handleSubmit}
-                            onDeleteClick={() => setDeleteModalOpen(true)}
-                        />;
+                return <ProfileSettings
+                    formData={formData}
+                    setFormData={setFormData}
+                    handleChange={handleChange}
+                    handleSubmit={handleSubmit}
+                    onDeleteClick={() => setDeleteModalOpen(true)}
+                />;
         }
     };
 
@@ -194,7 +192,7 @@ const Settings = () => {
                 </div>
             )}
             {isDeleteModalOpen && (
-                <DeleteConfirmationModal 
+                <DeleteConfirmationModal
                     onClose={() => setDeleteModalOpen(false)}
                     onConfirm={handleConfirmDelete}
                 />
@@ -437,18 +435,21 @@ const DeviceIcon = ({ os, size = 32 }) => {
     const osLower = os.toLowerCase();
 
     if (osLower.includes('windows')) {
-        return <Wind size={size} />;
-    }
-    if (osLower.includes('android')) {
-        return <Bot size={size} />;
-    }
-    if (osLower.includes('ios') || osLower.includes('mac')) {
-        return <Apple size={size} />;
+        return <Laptop size={size} />;
     }
     if (osLower.includes('linux')) {
         return <Laptop size={size} />;
     }
-     if (osLower.includes('chrome')) {
+    if (osLower.includes('mac')) {
+        return <Laptop size={size} />;
+    }
+    if (osLower.includes('android')) {
+        return <Smartphone size={size} />;
+    }
+    if (osLower.includes('ios')) {
+        return <Smartphone size={size} />;
+    }
+    if (osLower.includes('chrome')) {
         return <Globe size={size} />;
     }
     if (osLower.includes('tv')) {
