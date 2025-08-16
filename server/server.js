@@ -35,8 +35,9 @@ connectDB();
 const app = express();
 const server = createServer(app);
 
+// Update allowedOrigins for production
 const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL]
+    ? [process.env.FRONTEND_URL] // This will be your Vercel URL
     : ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'];
 
 const io = new Server(server, {
@@ -66,7 +67,7 @@ io.on('connection', (socket) => {
         userSockets.set(userId, new Set());
       }
       userSockets.get(userId).add(socket.id);
-      socket.userId = userId; // Associate userId with the socket
+      socket.userId = userId;
       console.log(`User ${userId} registered socket ${socket.id}`);
     }
   });
@@ -142,6 +143,11 @@ app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
 
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+});
+
+
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   if (err.name === 'UnauthorizedError') {
@@ -154,3 +160,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+export default app;
