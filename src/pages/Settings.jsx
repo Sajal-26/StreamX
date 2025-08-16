@@ -2,7 +2,16 @@ import { useState, useEffect, useRef, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../store/useAuthStore';
 import styles from '../styles/Profile.module.css';
-import { User, Key, Save, Camera, X, Shield, Monitor, LogOut, Upload, ChevronLeft, Mars, Venus, Transgender, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Key, Save, Camera, X, Shield, LogOut, Upload, ChevronLeft, Mars, Venus, Transgender, Trash2, AlertTriangle } from 'lucide-react';
+import { 
+    Monitor, 
+    Apple, 
+    Laptop, 
+    Tv,
+    Globe,
+    Wind,
+    Bot
+} from 'lucide-react';
 import ImageCropper from '../components/ImageCropper';
 import profileAvatars from '../assets/profileData.json';
 import { showErrorToast } from '../components/Toast';
@@ -11,7 +20,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import dayjs from 'dayjs';
-import { SocketContext } from '../App'; // Import the context
+import { SocketContext } from '../App';
 
 const darkTheme = createTheme({
   palette: {
@@ -424,6 +433,30 @@ const SecuritySettings = ({ user }) => {
     );
 };
 
+const DeviceIcon = ({ os, size = 32 }) => {
+    const osLower = os.toLowerCase();
+
+    if (osLower.includes('windows')) {
+        return <Wind size={size} />;
+    }
+    if (osLower.includes('android')) {
+        return <Bot size={size} />;
+    }
+    if (osLower.includes('ios') || osLower.includes('mac')) {
+        return <Apple size={size} />;
+    }
+    if (osLower.includes('linux')) {
+        return <Laptop size={size} />;
+    }
+     if (osLower.includes('chrome')) {
+        return <Globe size={size} />;
+    }
+    if (osLower.includes('tv')) {
+        return <Tv size={size} />;
+    }
+    return <Monitor size={size} />;
+};
+
 const DeviceManager = () => {
     const { fetchDevices, logoutDevice, user } = useAuthStore();
     const [devices, setDevices] = useState([]);
@@ -478,7 +511,7 @@ const DeviceManager = () => {
                 {devices.length > 0 ? (
                     devices.map(device => (
                         <div key={device.id} className={styles.deviceItem}>
-                            <Monitor size={32} />
+                            <DeviceIcon os={device.os} />
                             <div className={styles.deviceInfo}>
                                 <strong>{device.browser} on {device.os}</strong>
                                 <span>{device.location} • {device.lastActive}</span>
