@@ -35,9 +35,8 @@ connectDB();
 const app = express();
 const server = createServer(app);
 
-// Update allowedOrigins for production
 const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [process.env.FRONTEND_URL] // This will be your Vercel URL
+    ? [process.env.FRONTEND_URL]
     : ['http://localhost:5173', 'http://10.223.85.104:5173', 'http://192.168.56.1:5173'];
 
 const io = new Server(server, {
@@ -91,6 +90,9 @@ app.use(helmet());
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log("INCOMING ORIGIN:", origin);
+    console.log("ALLOWED ORIGINS:", allowedOrigins);
+
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
