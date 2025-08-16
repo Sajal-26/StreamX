@@ -10,7 +10,7 @@ import TempUser from './models/TempUser.js';
 import Device from './models/Device.js';
 import { connectDB } from './db.js';
 
-const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const transporter = nodemailer.createTransport({
