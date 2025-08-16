@@ -832,26 +832,41 @@ export const logoutHandler = async (req, res) => {
     return res.status(200).json({ message: 'Logged out.' });
 };
 
-export const logoutDeviceHandler = async (req, res, callback) => {
+export const logoutDeviceHandler = async (req, res, { sendToDevice }) => {
     const { deviceId } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     if (!deviceId) {
-        return res.status(400).json({ message: 'Device ID is required.' });
+        return res.status(400).json({ message: 'Device ID is required' });
     }
 
     try {
-        const result = await Device.deleteOne({ userId, deviceId });
-
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: 'Device not found for this user.' });
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        res.status(200).json({ message: 'Device logged out successfully.' });
-        if (callback) callback(userId, deviceId);
+        const deviceToLogout = await Device.findOne({ userId: user._id, deviceId: deviceId });
+        if (!deviceToLogout) {
+            return res.status(404).json({ message: 'Device not found' });
+        }
+
+        deviceToLogout.refreshToken = null;
+        await deviceToLogout.save();
+        
+        if (sendToDevice) {
+            sendToDevice(userId.toString(), deviceId, 'logout', { 
+                message: 'You have been logged out remotely from this device.' 
+            });
+        }
+
+        return res.status(200).json({ message: 'Device logged out successfully' });
+
     } catch (error) {
         console.error('Error logging out device:', error);
-        res.status(500).json({ message: 'Server error while logging out device.' });
+        if (!res.headersSent) {
+            return res.status(500).json({ message: 'Server error' });
+        }
     }
 };
 
