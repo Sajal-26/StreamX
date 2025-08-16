@@ -87,6 +87,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your_16_character_google_app_password
+
 ```
 
 **4. Configure Google OAuth Credentials:**
