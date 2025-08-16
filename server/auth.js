@@ -273,7 +273,7 @@ export async function signupRequestHandler(req, res) {
     return res.status(200).json({ message: "OTP sent to email." });
 }
 
-export async function verifyOtpHandler(req, res) {
+export async function verifyOtpHandler(req, res, { broadcastToUser }) {
     await connectDB();
     const { email, otp, device } = req.body;
 
@@ -318,6 +318,9 @@ export async function verifyOtpHandler(req, res) {
     if (device) {
         try {
             await addOrUpdateDevice(newUser, device, ip, refreshHash);
+            if (broadcastToUser) {
+                broadcastToUser(newUser._id.toString(), 'devices-updated');
+            }
         } catch (err) {
             console.error('Device add/update failed during OTP verification:', err);
         }
@@ -393,7 +396,7 @@ export async function resendOtpHandler(req, res) {
     return res.status(200).json({ message: "New OTP sent to email." });
 }
 
-export async function loginHandler(req, res) {
+export async function loginHandler(req, res, { broadcastToUser }) {
     await connectDB();
     try {
         const { email, password, device } = req.body;
@@ -425,15 +428,15 @@ export async function loginHandler(req, res) {
 
         const ip = extractClientIP(req);
 
-        let deviceServerToken = null;
         if (device) {
             try {
-                deviceServerToken = await addOrUpdateDevice(user, device, ip, refreshHash);
+                await addOrUpdateDevice(user, device, ip, refreshHash);
+                if (broadcastToUser) {
+                    broadcastToUser(user._id.toString(), 'devices-updated');
+                }
             } catch (err) {
                 console.error('Device add/update failed:', err);
             }
-        } else {
-            await user.save();
         }
 
         sendLoginNotificationEmail(user, ip);
@@ -462,10 +465,6 @@ export async function loginHandler(req, res) {
             },
         };
 
-        if (deviceServerToken) {
-            response.deviceServerToken = deviceServerToken;
-        }
-
         return res.status(200).json(response);
     } catch (err) {
         console.error('Login failed:', err);
@@ -473,7 +472,7 @@ export async function loginHandler(req, res) {
     }
 }
 
-export async function googleSignInHandler(req, res) {
+export async function googleSignInHandler(req, res, { broadcastToUser }) {
     await connectDB();
     try {
         const { token: googleToken, device } = req.body;
@@ -512,10 +511,12 @@ export async function googleSignInHandler(req, res) {
         const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
         
         const ip = extractClientIP(req);
-        let deviceServerToken = null;
         if (device) {
             try {
-                deviceServerToken = await addOrUpdateDevice(updatedUser, device, ip, refreshHash);
+                await addOrUpdateDevice(updatedUser, device, ip, refreshHash);
+                if (broadcastToUser) {
+                    broadcastToUser(updatedUser._id.toString(), 'devices-updated');
+                }
             } catch (err) {
                 console.error('Device add/update failed:', err);
             }
@@ -546,10 +547,6 @@ export async function googleSignInHandler(req, res) {
                 picture: updatedUser.picture,
             }
         };
-
-        if (deviceServerToken) {
-            response.deviceServerToken = deviceServerToken;
-        }
 
         return res.status(200).json(response);
     } catch (err) {
@@ -832,7 +829,7 @@ export const logoutHandler = async (req, res) => {
     return res.status(200).json({ message: 'Logged out.' });
 };
 
-export const logoutDeviceHandler = async (req, res, callback) => {
+export const logoutDeviceHandler = async (req, res, { broadcastToUser }) => {
     const { deviceId } = req.body;
     const userId = req.user.userId;
 
@@ -846,12 +843,19 @@ export const logoutDeviceHandler = async (req, res, callback) => {
         if (result.deletedCount === 0) {
             return res.status(404).json({ message: 'Device not found for this user.' });
         }
-
+        
+        if (broadcastToUser) {
+            broadcastToUser(userId, 'force-logout', { deviceId });
+            broadcastToUser(userId, 'devices-updated');
+        }
+        
         res.status(200).json({ message: 'Device logged out successfully.' });
-        if (callback) callback(userId, deviceId);
+
     } catch (error) {
         console.error('Error logging out device:', error);
-        res.status(500).json({ message: 'Server error while logging out device.' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Server error while logging out device.' });
+        }
     }
 };
 

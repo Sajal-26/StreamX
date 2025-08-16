@@ -9,7 +9,7 @@ import ProfilePage from './pages/ProfilePage';
 import ServerDownPage from './pages/ServerDownPage';
 import { Toast } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
-import useAuthStore, { getDeviceInfo } from './store/useAuthStore';
+import useAuthStore from './store/useAuthStore';
 import Layout from './components/Layout';
 import Loader from './components/Loader';
 import io from 'socket.io-client';
@@ -24,7 +24,7 @@ const PlaceholderPage = ({ title }) => (
 );
 
 function App() {
-  const { user, logout, isLoading } = useAuthStore();
+  const { user, logout, isLoading, deviceId } = useAuthStore();
   const [isServerOnline, setIsServerOnline] = useState(true);
   const [isCheckingServer, setIsCheckingServer] = useState(true);
   const [socket, setSocket] = useState(null);
@@ -69,8 +69,10 @@ function App() {
     });
 
     newSocket.on('force-logout', (data) => {
-      console.log('Force logout event received from server:', data);
-      logout({ redirect: true });
+      console.log('Force logout event received from server for device:', data.deviceId);
+      if (data.deviceId === deviceId) {
+        logout({ isForced: true });
+      }
     });
 
     newSocket.on('disconnect', () => {
@@ -81,7 +83,7 @@ function App() {
       console.log('Disconnecting socket...');
       newSocket.disconnect();
     };
-  }, [user, logout, isServerOnline]);
+  }, [user, logout, isServerOnline, deviceId]);
 
   if (isCheckingServer) {
     return <Loader />;

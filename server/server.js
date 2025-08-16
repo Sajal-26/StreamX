@@ -103,28 +103,23 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ message: 'Server is up and running successfully!' });
 });
 
-const createHandler = (handler) => (req, res) => handler(req, res, { broadcastToUser });
+app.post('/api/login', (req, res) => loginHandler(req, res, { broadcastToUser }));
+app.post('/api/auth-google', (req, res) => googleSignInHandler(req, res, { broadcastToUser }));
+app.post('/api/verify-otp', (req, res) => verifyOtpHandler(req, res, { broadcastToUser }));
+app.post('/api/logout-device', protect, (req, res) => logoutDeviceHandler(req, res, { broadcastToUser }));
 
-app.post('/api/login', createHandler(loginHandler));
-app.post('/api/auth-google', createHandler(googleSignInHandler));
 app.post('/api/signup-request', signupRequestHandler);
-app.post('/api/verify-otp', createHandler(verifyOtpHandler));
 app.post('/api/resend-otp', resendOtpHandler);
-
 app.get('/api/profile/:id', protect, getUserProfile);
 app.put('/api/profile/:id', protect, updateUserProfile);
 app.post('/api/change-password', protect, changePasswordHandler);
 app.post('/api/forgot-password', forgotPasswordHandler);
 app.post('/api/reset-password', resetPasswordHandler);
 app.get('/api/devices', protect, getDevicesHandler);
-app.delete('/api/profile/:id', protect, createHandler(deleteAccountHandler));
-
+app.delete('/api/profile/:id', protect, deleteAccountHandler);
 app.post('/api/refresh-token', refreshTokenHandler);
 app.post('/api/logout', logoutHandler);
 
-app.post('/api/logout-device', protect, (req, res) => {
-  logoutDeviceHandler(req, res, { broadcastToUser });
-});
 
 app.get('/api/profile', protect, updateLastActiveMiddleware, (req, res) => {
   res.status(200).json({  
@@ -140,7 +135,9 @@ app.use((err, req, res, next) => {
   if (err.name === 'UnauthorizedError') {
     return res.status(401).json({ message: 'Invalid token' });
   }
-  res.status(500).json({ message: err.message || 'Server error' });
+  if (!res.headersSent) {
+    res.status(500).json({ message: err.message || 'Server error' });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

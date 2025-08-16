@@ -1,43 +1,26 @@
 import { create } from "zustand";
 import axios from "axios";
 import { showSuccessToast, showErrorToast } from '../components/Toast';
-import Cookies from 'js-cookie';
+import CryptoJS from 'crypto-js';
 import { UAParser } from "ua-parser-js";
 
 const API_BASE = "/api";
-// const API_BASE = 'http://localhost:3000/api';
-
-const getBrowserInstanceId = () => {
-    let instanceId = localStorage.getItem('browserInstanceId');
-    if (!instanceId) {
-        if (self.crypto && self.crypto.randomUUID) {
-            instanceId = self.crypto.randomUUID();
-        } else {
-            console.warn('crypto.randomUUID not available. Using a fallback method.');
-            instanceId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-                const r = (Math.random() * 16) | 0;
-                const v = c === 'x' ? r : (r & 0x3) | 0x8;
-                return v.toString(16);
-            });
-        }
-        localStorage.setItem('browserInstanceId', instanceId);
-    }
-    return instanceId;
-};
 
 export const getDeviceInfo = () => {
-    const parser = new UAParser(navigator.userAgent);
+    const parser = new UAParser();
     const result = parser.getResult();
-    const browserInstanceId = getBrowserInstanceId();
-    const deviceId = `${result.os.name || 'UnknownOS'}-${result.browser.name || 'UnknownBrowser'}-${browserInstanceId}`;
+    const os = `${result.os.name} ${result.os.version}`;
+    const browser = `${result.browser.name} ${result.browser.version}`;
+    const deviceType = result.device.type || 'desktop';
+    const name = `${result.os.name} on ${result.browser.name}`;
 
-    return {
-        deviceId: deviceId,
-        name: result.device.model || result.device.type || "Desktop",
-        os: `${result.os.name || "Unknown OS"} ${result.os.version || ""}`.trim(),
-        browser: `${result.browser.name || "Unknown Browser"} ${result.browser.version || ""}`.trim(),
-        location: null
-    };
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    const renderer = gl ? gl.getParameter(gl.RENDERER) : '';
+    const fingerprint = `${navigator.userAgent}-${navigator.language}-${renderer}`;
+    const deviceId = CryptoJS.SHA256(fingerprint).toString();
+
+    return { deviceId, name, os, browser, type: deviceType };
 };
 
 const useAuthStore = create((set, get) => ({
@@ -45,6 +28,7 @@ const useAuthStore = create((set, get) => ({
     isLoading: false,
     error: null,
     cooldown: 0,
+    deviceId: localStorage.getItem('deviceId'),
 
     setAuthData: (data) => {
         const { user } = data;
@@ -55,33 +39,35 @@ const useAuthStore = create((set, get) => ({
     logout: async (options = {}) => {
         const { redirect = false } = options;
         const wasLoggedIn = !!get().user;
-      
+
         localStorage.removeItem('user-info');
+        localStorage.removeItem('deviceId');
         set({ user: null, error: null });
-      
+
         if (wasLoggedIn) {
-          if (!redirect) {
-            showSuccessToast("You have been logged out.");
-          }
-      
-          try {
-            await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
-          } catch (err) {
-            console.error("Server logout cleanup failed (this is often expected if the session was already invalid):", err.response?.data?.message || err.message);
-          }
-      
-          if (redirect) {
-            window.location.assign('/auth');
-          }
+            if (!redirect) {
+                showSuccessToast("You have been logged out.");
+            }
+
+            try {
+                await axios.post(`${API_BASE}/logout`, {}, { withCredentials: true });
+            } catch (err) {
+                console.error("Server logout cleanup failed (this is often expected if the session was already invalid):", err.response?.data?.message || err.message);
+            }
+
+            if (redirect) {
+                window.location.assign('/auth');
+            }
         }
     },
-    
+
     login: async ({ email, password }) => {
         set({ isLoading: true, error: null });
         try {
             const device = getDeviceInfo();
             const res = await axios.post(`${API_BASE}/login`, { email, password, device }, { withCredentials: true });
             get().setAuthData({ user: res.data.user });
+            localStorage.setItem('deviceId', device.deviceId);
             showSuccessToast('Login successful! Welcome back.');
         } catch (err) {
             const serverMsg = err.response?.data?.message || err.message;
@@ -160,6 +146,7 @@ const useAuthStore = create((set, get) => ({
             const device = getDeviceInfo();
             const res = await axios.post(`${API_BASE}/auth-google`, { token: googleIdToken, device }, { withCredentials: true });
             get().setAuthData({ user: res.data.user });
+            localStorage.setItem('deviceId', device.deviceId);
             showSuccessToast('Successfully signed in with Google!');
         } catch (err) {
             const serverMsg = err.response?.data?.message || 'Google login failed. Please try again.';
@@ -261,7 +248,7 @@ const useAuthStore = create((set, get) => ({
             if (error.response?.status !== 401) {
                 showErrorToast(error.response?.data?.message || 'Failed to fetch devices');
             }
-            return null; 
+            return null;
         } finally {
             set({ isLoading: false });
         }
@@ -282,15 +269,24 @@ const useAuthStore = create((set, get) => ({
             set({ isLoading: false });
         }
     },
+
+    updateUser: (updatedUserData) => {
+        const currentUser = get().user;
+        if (currentUser) {
+            const newUser = { ...currentUser, ...updatedUserData };
+            localStorage.setItem('user', JSON.stringify(newUser));
+            set({ user: newUser });
+        }
+    },
 }));
 
 axios.interceptors.request.use(
-  (config) => {
-    const deviceInfo = getDeviceInfo();
-    config.headers['x-device-id'] = deviceInfo.deviceId;
-    return config;
-  },
-  (error) => Promise.reject(error)
+    (config) => {
+        const deviceInfo = getDeviceInfo();
+        config.headers['x-device-id'] = deviceInfo.deviceId;
+        return config;
+    },
+    (error) => Promise.reject(error)
 );
 
 let isRefreshing = false;
@@ -308,36 +304,36 @@ const processQueue = (error) => {
 };
 
 axios.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    const hasUser = !!useAuthStore.getState().user;
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        const hasUser = !!useAuthStore.getState().user;
 
-    if (hasUser && error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== `${API_BASE}/refresh-token`) {
-      if (isRefreshing) {
-        return new Promise(function(resolve, reject) {
-          failedQueue.push({ resolve, reject });
-        }).then(() => axios(originalRequest));
-      }
+        if (hasUser && error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== `${API_BASE}/refresh-token`) {
+            if (isRefreshing) {
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(() => axios(originalRequest));
+            }
 
-      originalRequest._retry = true;
-      isRefreshing = true;
+            originalRequest._retry = true;
+            isRefreshing = true;
 
-      try {
-        await axios.post(`${API_BASE}/refresh-token`, {}, { withCredentials: true });
-        processQueue(null);
-        return axios(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError);
-        showErrorToast('Your session has been terminated. Please log in again.');
-        useAuthStore.getState().logout({ redirect: true });
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
+            try {
+                await axios.post(`${API_BASE}/refresh-token`, {}, { withCredentials: true });
+                processQueue(null);
+                return axios(originalRequest);
+            } catch (refreshError) {
+                processQueue(refreshError);
+                showErrorToast('Your session has been terminated. Please log in again.');
+                useAuthStore.getState().logout({ redirect: true });
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+        return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 export default useAuthStore;
