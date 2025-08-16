@@ -88,17 +88,21 @@ io.on('connection', (socket) => {
 
 app.use(helmet());
 
-app.use(cors({
-  origin: function (origin, callback) {
-    console.log("INCOMING ORIGIN:", origin);
-    console.log("ALLOWED ORIGINS:", allowedOrigins);
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     console.log("INCOMING ORIGIN:", origin);
+//     console.log("ALLOWED ORIGINS:", allowedOrigins);
 
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+//     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true,
+// }));
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
 }));
 
