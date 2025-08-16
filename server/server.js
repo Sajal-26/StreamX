@@ -61,8 +61,8 @@ const sendToDevice = (userId, deviceId, event, data) => {
 const broadcastToUser = (userId, event, data) => {
     const userConnections = userSockets.get(userId.toString());
     if (userConnections) {
-        userConnections.forEach(conn => {
-            io.to(conn.socketId).emit(event, data);
+        userConnections.forEach(socketId => {
+            io.to(socketId).emit(event, data);
         });
     }
 };
@@ -70,19 +70,14 @@ const broadcastToUser = (userId, event, data) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  socket.on('register', ({ userId, deviceId }) => {
-    if (userId && deviceId) {
+  socket.on('register', ({ userId }) => {
+    if (userId) {
       if (!userSockets.has(userId)) {
-        userSockets.set(userId, []);
+        userSockets.set(userId, new Set());
       }
-      const existingConnections = userSockets.get(userId);
-      const updatedConnections = existingConnections.filter(conn => conn.deviceId !== deviceId);
-      updatedConnections.push({ socketId: socket.id, deviceId });
-      userSockets.set(userId, updatedConnections);
-      
-      socket.userId = userId;
-      socket.deviceId = deviceId;
-      console.log(`User ${userId} with device ${deviceId} registered socket ${socket.id}`);
+      userSockets.get(userId).add(socket.id);
+      socket.userId = userId; // Associate userId with the socket
+      console.log(`User ${userId} registered socket ${socket.id}`);
     }
   });
 
@@ -91,17 +86,14 @@ io.on('connection', (socket) => {
     if (socket.userId) {
       const userConnections = userSockets.get(socket.userId);
       if (userConnections) {
-        const updatedConnections = userConnections.filter(conn => conn.socketId !== socket.id);
-        if (updatedConnections.length === 0) {
+        userConnections.delete(socket.id);
+        if (userConnections.size === 0) {
           userSockets.delete(socket.userId);
-        } else {
-          userSockets.set(socket.userId, updatedConnections);
         }
       }
     }
   });
 });
-
 
 app.use(helmet());
 
@@ -109,9 +101,6 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true,
 }));
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
@@ -161,7 +150,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 export default app;
