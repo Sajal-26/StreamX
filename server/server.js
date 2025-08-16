@@ -70,14 +70,14 @@ const broadcastToUser = (userId, event, data) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  socket.on('register', ({ userId }) => {
-    if (userId) {
+  socket.on('register', ({ userId, deviceId }) => {
+    if (userId && deviceId) {
       if (!userSockets.has(userId)) {
-        userSockets.set(userId, new Set());
+        userSockets.set(userId, []);
       }
-      userSockets.get(userId).add(socket.id);
-      socket.userId = userId; // Associate userId with the socket
-      console.log(`User ${userId} registered socket ${socket.id}`);
+      userSockets.get(userId).push({ socketId: socket.id, deviceId });
+      socket.userId = userId;
+      console.log(`User ${userId} registered socket ${socket.id} for device ${deviceId}`);
     }
   });
 
